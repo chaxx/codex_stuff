@@ -1,0 +1,444 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,amsthm,mathtools,microtype,booktabs}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=*}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}\newtheorem{definition}[theorem]{Definition}
+\newtheorem{question}[theorem]{Research target}
+\theoremstyle{remark}\newtheorem{remark}[theorem]{Remark}
+\newcommand{\F}{\mathbb F}
+\newcommand{\E}{\mathbb E}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\Conn}{\operatorname{Conn}}
+\newcommand{\av}{\operatorname{av}}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\cut}{\mathcal C}
+\newcommand{\bin}[1]{\{0,1\}^{#1}}
+\title{Beyond the Square-Root Gadget:\\Deterministic Connectivity Lower-Bound Strategies}
+\author{Research working note}
+\date{October 29, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We investigate deterministic simultaneous neighborhood messages for deciding graph connectivity. We do not obtain an improvement over the supplied draft's $\Omega(\sqrt n)$ bound for unrestricted encoders. We prove two unconditional structural inequalities for every correct protocol, yielding linear or nearly linear lower bounds for low-alternation and low-degree encoders. We also prove linear lower bounds for several mergeable or additive sketch classes. A different candidate hard family, the two-sheeted lifts of a complete graph, reduces the unrestricted problem to cut-space recognition. We formulate the precise nonlinear collision statement that would yield a nearly linear bound, prove restricted versions, and establish a barrier to all bounded-rank switching arguments. The distinction between established results and proposed routes is maintained throughout. Literature novelty of the deductions is not asserted.
+\end{abstract}
+
+\section{Model, status, and scope}
+There are $n$ labeled vertices. Vertex $v$ receives $N_G(v)\subseteq[n]\setminus\{v\}$ and sends $M_v(N_G(v))$ to a referee. Messages are simultaneous and deterministic; the referee is unrestricted and must decide connectivity exactly on every simple undirected graph. Let $B_v$ be a fixed message length, $B=\max_v B_v$, and $N=\binom n2$. Claims concerning the individual output bits use a specified fixed-length encoding. For unrestricted alphabet arguments, allowing variable lengths changes the logarithmic alphabet bound by at most one bit.
+
+The draft's Section 6 proves $B=\Omega(\sqrt n)$ for $k=1$. Its reservoir has size $q=\Omega(B)$ and the final transcript collision uses $\Omega(qB)$ centers. Improving constants in these steps does not change the square-root exponent. We seek other mechanisms, not a reparameterization of that proof.
+
+The results proved here include the following.
+\begin{center}\small
+\begin{tabular}{@{}p{0.52\linewidth}p{0.39\linewidth}@{}}
+\toprule
+Encoder class or hypothesis & Consequence for $B$\\
+\midrule
+Arbitrary encoders & Structural inequalities below; no improved general $B$ bound\\
+Every output bit has expected chain alternation at most $a$ & $B\ge(n-1)/(2a)$\\
+Monotone output bits & Exact optimum $\lceil(n-1)/2\rceil$\\
+Every output bit has $\F_2$ degree at most $d$ & $B\ge\lfloor n^2/4\rfloor/(nd)$\\
+XOR-affine or exactly XOR-mergeable summaries & Exact optimum $\lceil(n-1)/2\rceil$\\
+Exactly set-union-mergeable summaries & $B\ge\lfloor n^2/4\rfloor/n$\\
+One common additive neighbor sketch & $B\ge n/2-\tfrac12\log_2n-O(1)$\\
+\bottomrule
+\end{tabular}\end{center}
+All restrictions in this table are genuine. In particular, none is silently imposed on the encoders in the draft's general lower-bound theorem.
+
+For context, Robinson--Tan \cite{RT26} prove a tiny-error lower bound whose deterministic consequence is $\Omega(n^{1/3})$. The newer two-party connectivity result of Zhang \cite{Z26} concerns disjoint edge sets held by two parties, not one neighborhood per vertex. Its $\Omega(n\log n)$ bound cannot simply be divided by a constant number of simulated vertices: the simulation must preserve the local information restriction and duplicated knowledge of every edge. The ordinary two-party problem has an $O(n\log n)$ spanning-forest protocol, so a direct total-communication reduction from that problem does not supply the desired $\widetilde\Omega(n^2)$ total cost here.
+
+\section{A bridge argument: an unconditional chain-alternation inequality}
+This argument uses a different family from the draft's local-collision gadget: two cliques connected by one bridge, with a random split size.
+
+\begin{definition}
+For $f:2^{[n]\setminus\{v\}}\to\{0,1\}$, let
+\[
+ \av(f)=\E_\pi\sum_{t=1}^{n-1}
+ \mathbf1\{f(S_t)\ne f(S_{t-1})\},
+ \qquad S_t=\{\pi_1,\ldots,\pi_t\},
+\]
+where $\pi$ is a uniformly random ordering of the possible neighbors of $v$.
+\end{definition}
+This is expected alternation along a maximal inclusion chain, not the usual uniformly weighted total influence.
+
+\begin{theorem}[Unrestricted structural inequality]\label{thm:alt}
+Write $f_{v,j}$ for output bit $j$ of vertex $v$. Every correct deterministic protocol satisfies
+\[
+ \boxed{\sum_{v=1}^n\sum_{j=1}^{B_v}\av(f_{v,j})\ge\binom n2.}
+\]
+Consequently, if $\av(f_{v,j})\le a$ for every output bit, then
+$B\ge(n-1)/(2a)$.
+\end{theorem}
+\begin{proof}
+Choose $t$ uniformly from $\{1,\ldots,n-1\}$; choose distinct ordered vertices $u,v$ uniformly; then choose a set $A$ of size $t$ uniformly subject to $u\in A$ and $v\notin A$. Put $C=[n]\setminus A$. Compare
+\[
+ G_0=K_A\cup K_C,\qquad G_1=G_0+uv.
+\]
+The first graph is disconnected and the second connected. Only the messages of $u$ and $v$ can change, so the Hamming distance between their combined messages is at least one.
+
+Conditional on $u$ and $t$, the pair $(N_{G_1}(u),v)$ is a uniform $t$-subset of $[n]\setminus\{u\}$ together with a uniform distinguished member. Removing that member gives $N_{G_0}(u)$. Thus for a fixed bit $f_{u,j}$, its probability of changing is the probability that it changes between levels $t-1$ and $t$ of a random maximal chain. Averaging over $t$ gives $\av(f_{u,j})/(n-1)$. Averaging over the uniform endpoint $u$ and summing its bits gives
+\[
+ \frac{1}{n(n-1)}\sum_{w,j}\av(f_{w,j}).
+\]
+The other endpoint has degree $n-t$ in $G_1$. Since $n-t$ is also uniform on $\{1,\ldots,n-1\}$, its contribution is identical. The expected combined Hamming distance is therefore
+\[
+ \frac{2}{n(n-1)}\sum_{w,j}\av(f_{w,j})\ge1,
+\]
+which proves the claim.
+\end{proof}
+
+\begin{corollary}[Sharp monotone-encoder bound]
+If every output bit is monotone increasing or monotone decreasing in the neighborhood, then
+\[
+ B\ge\left\lceil\frac{n-1}{2}\right\rceil.
+\]
+This is sharp, with an arbitrary referee.
+\end{corollary}
+\begin{proof}
+A monotone bit changes at most once on every inclusion chain. For the matching upper bound, fix a balanced orientation of the complete graph, assign each possible edge to its tail, and have each vertex report the presence bits of its assigned edges. The referee reconstructs the graph. Each vertex sends at most $\lceil(n-1)/2\rceil$ bits, all of them monotone.
+\end{proof}
+
+More generally, any polylogarithmic bound on expected or worst-case chain alternation gives a nearly linear lower bound. This is not a bound for arbitrary messages: a parity bit has expected alternation $n-1$. The construction supplies a necessary inequality, not an unrestricted hard distribution with a linear information lower bound.
+
+\section{A polynomial argument: a second unconditional inequality}
+The previous argument does not constrain parity sketches. Algebraic degree supplies a complementary obstruction.
+
+\begin{theorem}[Exact finite-characteristic degree]\label{thm:degree}
+Let $p$ be prime and let $t_p(n)$ be the number of edges in the balanced complete $p$-partite graph on $n$ vertices, allowing empty parts when $p>n$. The unique multilinear representation of $\Conn_n:\bin{N}\to\F_p$ has degree
+\[
+ \deg_{\F_p}(\Conn_n)=t_p(n).
+\]
+In particular,
+\[
+ \deg_{\F_2}(\Conn_n)=\left\lfloor\frac{n^2}{4}\right\rfloor.
+\]
+\end{theorem}
+\begin{proof}
+For a graph $H$ on the full vertex set, the coefficient $a_H$ of the monomial $\prod_{e\in E(H)}x_e$ is, over the integers before reduction modulo $p$,
+\begin{align*}
+ a_H
+ &=\sum_{A\subseteq E(H)}(-1)^{|E(H)|-|A|}\Conn_n(A)\\
+ &=(-1)^{|E(H)|}[q]P_H(q),
+\end{align*}
+where the chromatic polynomial has its inclusion--exclusion expansion
+\[
+ P_H(q)=\sum_{A\subseteq E(H)}(-1)^{|A|}q^{c(A)}.
+\]
+The latter identity follows by excluding the colorings monochromatic on each edge; a specified set $A$ of equal-color constraints leaves $q^{c(A)}$ colorings.
+
+Since $P_H$ has zero constant term,
+\[
+ [q]P_H(q)\equiv P_H(p)/p\pmod p.
+\]
+If $a_H\not\equiv0\pmod p$, then $P_H(p)>0$, so $H$ is $p$-colorable. If its color-class sizes are $n_1,\ldots,n_p$, then
+\[
+ |E(H)|\le\frac12\left(n^2-\sum_i n_i^2\right)\le t_p(n).
+\]
+For the reverse inequality, suppose first $n\ge p$ and take $H$ to be the balanced complete $p$-partite graph. Each of its $p$ nonempty parts must receive its own color, so $P_H(p)=p!$. Therefore $[q]P_H(q)\equiv(p-1)!\not\equiv0\pmod p$. When $p>n$, take $H=K_n$ instead: $P_H(p)/p=(p-1)\cdots(p-n+1)$ is nonzero modulo $p$. This proves both cases.
+\end{proof}
+
+In characteristic zero the degree is $N$: take $H=K_n$, whose coefficient of $q$ is $(-1)^{n-1}(n-1)!$. The real-degree statement is also Theorem 5.3 of Roughgarden--Vassilvitskii--Wang \cite{RVW17}. The finite-field formula above is proved here directly; this note makes no priority claim for it.
+
+\begin{theorem}[Unrestricted algebraic-degree budget]\label{thm:degreebudget}
+For every prime $p$, a correct deterministic protocol satisfies
+\[
+ \boxed{\sum_{v,j}\deg_{\F_p}(f_{v,j})\ge t_p(n).}
+\]
+In particular, if every output bit has $\F_2$ degree at most $d$, then
+\[
+ \boxed{B\ge\frac{\lfloor n^2/4\rfloor}{nd}.}
+\]
+\end{theorem}
+\begin{proof}
+Extend the referee's Boolean output arbitrarily to every binary transcript. Its unique multilinear polynomial in the $\sum_v B_v$ transmitted bits uses each bit at most once in any monomial. Substitute the local representing polynomials for these variables. The resulting polynomial has degree at most $\sum_{v,j}\deg(f_{v,j})$ and computes connectivity on Boolean graph inputs. Multilinearization cannot increase degree, so Theorem~\ref{thm:degree} gives the inequality.
+\end{proof}
+
+The hypothesis permits vertex-dependent nonlinear encoders and an arbitrary nonlinear referee. Constant-degree and polylogarithmic-degree message bits require linear and nearly linear messages, respectively. For an unrestricted Boolean function the degree can be $n-1$, so this alone does not improve the general lower bound. Together, Theorems~\ref{thm:alt} and~\ref{thm:degreebudget} show that a short exact protocol needs substantial aggregate chain alternation \emph{and} substantial aggregate algebraic degree. They do not require the same output bits to account for both budgets.
+
+\section{XOR-linear, XOR-mergeable, and fixed-characteristic sketches}
+\begin{theorem}[Sharp XOR-affine lower bound]\label{thm:xor}
+If all messages are affine-linear over $\F_2$ in their incident-edge indicators, then their concatenation is injective on all graphs. Hence
+\[
+ \sum_v B_v\ge\binom n2,
+ \qquad B\ge\left\lceil\frac{n-1}{2}\right\rceil.
+\]
+The referee need not be linear. The maximum-message bound is sharp.
+\end{theorem}
+\begin{proof}
+Concatenate the messages as $Ax+c$, where $x\in\F_2^N$ is the edge-indicator vector. If $A$ has a nonzero kernel vector, let $D$ be its edge support. Choose an edge $e\in D$ and a spanning tree $T$ containing $e$. Set
+\[
+ G_0=T\setminus D,\qquad G_1=(T\setminus D)\cup D.
+\]
+The graph $G_0$ is disconnected because it is a proper subgraph of a tree. The graph $G_1$ is connected because it contains $T$. Their indicator difference is exactly $\mathbf1_D$, so their transcripts agree, a contradiction. Thus $\rank A=N$. The balanced edge-ownership protocol attains the bound.
+\end{proof}
+
+This proof applies even to a single global XOR-linear sketch of the whole graph. Its limitation is not the referee: it is the translation-invariance of encoder collisions. An arbitrary collision $M(G)=M(H)$ cannot in general be transported to the pair $(T\setminus(G\triangle H)),(T\setminus(G\triangle H))\cup(G\triangle H)$.
+
+\begin{corollary}[Exact XOR-mergeability suffices]
+Suppose each actual message admits exact symmetric-difference merging: from $M_v(S)$ and $M_v(T)$ one can compute $M_v(S\triangle T)$ for all $S,T$. Then the same lower bound holds, without assuming an explicitly linear implementation. The same conclusion holds if the actual message can be updated exactly from $M_v(S)$ and a neighbor label $u$ after every toggle $S\mapsto S\triangle\{u\}$.
+\end{corollary}
+\begin{proof}
+Under either condition, equality of two messages is preserved by every translation $S\mapsto S\triangle T$. The equivalence class of the empty set is therefore a subgroup of $\F_2^{n-1}$, and every other class is a coset. Relabeling the classes gives a linear quotient with dimension at most $B_v$. Apply Theorem~\ref{thm:xor} to these quotients.
+\end{proof}
+Ordinary signed insertions and deletions over a large odd-characteristic field are not automatically XOR toggles; this corollary must not be applied to them without checking the hypothesis.
+
+\begin{proposition}[Arbitrary maps over a fixed characteristic]\label{prop:fixedchar}
+Suppose each message consists of field-linear measurements over $\F_{p^a}$, charged at $a\log_2p$ bits per field coordinate. Then
+\[
+ \sum_v B_v\ge \binom n2\frac{\log_2p}{p-1}.
+\]
+Thus every fixed characteristic gives $B=\Omega(n)$, even with different sketch matrices at different vertices.
+\end{proposition}
+\begin{proof}
+Expand all field coordinates over $\F_p$; let their total number be $r$. Each possible edge contributes a vector $w_e\in\F_p^r$. If $N>r(p-1)$, some nonempty subset of these vectors sums to zero. Its Boolean support $D$ gives the same connected/disconnected pair as in Theorem~\ref{thm:xor}.
+
+For completeness, the zero-sum assertion follows from the group algebra of $\F_p^r$. Write it as
+\[
+ R=\F_p[t_1,\ldots,t_r]/(t_1^p-1,\ldots,t_r^p-1).
+\]
+The augmentation ideal $J=(t_1-1,\ldots,t_r-1)$ satisfies $J^{r(p-1)+1}=0$, since $(t_i-1)^p=0$. For $w\in\F_p^r$, write $t^w=\prod_i t_i^{w_i}$. If there were no nonempty zero-sum subset, the coefficient of the identity basis element in $\prod_e(1-t^{w_e})$ would be $1$, contributed only by the empty subset. But every factor lies in $J$, so the product is zero when $N>r(p-1)$, a contradiction. Hence $r(p-1)\ge N$. Its bit cost is $r\log_2p$.
+\end{proof}
+The characteristic factor is essential to this argument. It is not a linear-bit lower bound for arbitrary growing prime fields.
+
+\section{Set-union-mergeable messages: a nonlinear linear lower bound}
+\begin{definition}
+An encoder is exactly set-union-mergeable if a deterministic operation on messages satisfies
+\[
+ M_v(S\cup T)=M_v(S)\vee_v M_v(T)
+\]
+for all neighborhoods $S,T$, including overlapping ones. This is stronger than mergeability only for disjoint sets.
+\end{definition}
+
+\begin{lemma}[Small generating witness]
+If an exactly union-mergeable message has at most $2^{B_v}$ values, then every neighborhood $S$ has a subset $C_v(S)\subseteq S$ of size at most $B_v$ with $M_v(C_v(S))=M_v(S)$.
+\end{lemma}
+\begin{proof}
+Take an inclusion-minimal generating subset $C$. The messages of all subsets of $C$ are distinct. Indeed, if $A,A'\subseteq C$ have the same message and $u\in A\setminus A'$, union both with $C\setminus A$. This gives $M_v(C)=M_v(A'\cup(C\setminus A))$, contradicting minimality because the latter set omits $u$. Therefore $2^{|C|}\le2^{B_v}$.
+\end{proof}
+
+\begin{theorem}\label{thm:union}
+Every correct deterministic connectivity protocol with exactly set-union-mergeable messages satisfies
+\[
+ B\ge\frac{\lfloor n^2/4\rfloor}{n}.
+\]
+\end{theorem}
+\begin{proof}
+At each vertex select a canonical minimal witness $C_v(N_G(v))$. Let $H\subseteq G$ be the union of these selected incident edges. At vertex $v$, the neighborhood in $H$ contains $C_v(N_G(v))$ and is contained in $N_G(v)$. Union-mergeability implies its message equals $M_v(N_G(v))$. Thus $H$ and $G$ have identical transcripts, so $H$ must be connected whenever $G$ is connected. We have obtained a deterministic local edge-selection rule selecting at most $B$ incident edges per vertex and preserving connectivity.
+
+Put $a=\lfloor n/2\rfloor$, $b=\lceil n/2\rceil$. Choose a uniformly random ordered partition $A,C$ of sizes $a,b$, a uniform $u\in A$, and a uniform $v\in C$. Let $G=K_A\cup K_C+uv$. Its bridge $uv$ must be selected by at least one endpoint. Conditional on $u$ and $N_G(u)$, the bridge neighbor is a uniform member of that neighborhood, which has size $a$. Thus $u$ selects it with probability at most $B/a$. Similarly the other endpoint selects it with probability at most $B/b$. Therefore
+\[
+ 1\le B/a+B/b,
+\]
+which gives $B\ge ab/(a+b)=\lfloor n^2/4\rfloor/n$.
+\end{proof}
+This includes arbitrary finite semilattice summaries, not only coordinatewise OR sketches. It does not establish a normal-form theorem reducing arbitrary deterministic protocols to mergeable ones.
+
+\section{Common additive neighbor sketches over arbitrary groups}
+The following removes the fixed-characteristic restriction, at the price of a common neighbor sketch.
+
+\begin{theorem}\label{thm:common}
+Suppose every vertex sends a common additive neighbor sketch
+\[
+ M_v(S)=\sum_{u\in S}w_u\in\Gamma,
+ \qquad |\Gamma|\le2^B,
+\]
+where $\Gamma$ is an abelian group. If these messages decide connectivity, then, with $m=\lfloor(n-1)/2\rfloor$,
+\[
+ B\ge\log_2\binom m{\lfloor m/2\rfloor}
+ =\frac n2-\frac12\log_2 n-O(1).
+\]
+The same lower bound holds for a common signed-adjacency sketch.
+\end{theorem}
+\begin{proof}
+Reserve a hub $h$ and two blocks $U,W$ of size $m$. Suppose the displayed inequality fails. Pigeonhole among the $\lfloor m/2\rfloor$-subsets of $U$. After cancelling the intersection of two distinct colliding subsets, obtain disjoint nonempty $A_+,A_-\subseteq U$ such that
+\[
+ \sum_{u\in A_+}w_u=\sum_{u\in A_-}w_u.
+\]
+Similarly obtain disjoint nonempty $B_+,B_-\subseteq W$ with equal sums.
+
+Form the parallel and crossed edge sets
+\begin{align*}
+ E_\parallel&=(A_+\times B_+)\cup(A_-\times B_-),\\
+ E_\times&=(A_+\times B_-)\cup(A_-\times B_+).
+\end{align*}
+Choose $a\in A_+$ and $b\in B_+$. In both graphs add $ha,hb$, and attach every unused vertex as a leaf to $a$. The parallel graph has two components. The crossed graph is connected because the hub joins its two complete-bipartite pieces.
+
+Every $A$-vertex exchanges the equal-sum neighbor sets $B_+,B_-$. Every $B$-vertex exchanges $A_+,A_-$. All other contributions are unchanged. Hence the transcripts agree, a contradiction.
+
+For signed adjacency, take all labels in $U$ below those in $W$. The changed terms have a constant sign within each row; all unchanged contributions again cancel. Therefore the same collision works.
+\end{proof}
+
+\begin{corollary}
+If vertices use one of $r$ common additive maps, each taking values in a group of size at most $2^B$, then $rB\ge\log_2\binom m{\lfloor m/2\rfloor}$.
+\end{corollary}
+\begin{proof}
+Pigeonhole using the joint tuple of all $r$ additive maps and repeat the construction.
+\end{proof}
+In particular, polylogarithmically many map types still require nearly linear messages. The common Vandermonde signed-adjacency map in the draft is in the single-map class if used deterministically for exact connectivity. An arbitrary lossy, vertex-dependent postprocessing of an enormous hidden common sketch is \emph{not} covered by this theorem; the stated bound is on the communicated additive sketch itself.
+
+\section{A different candidate hard family: complete-graph two-lifts}
+Let $m\ge3$ and label each edge of $K_m$ by a bit $x_{uv}$. The two-sheeted lift $L(x)$ has vertices $(v,b)$ for $v\in[m]$, $b\in\F_2$, and edges
+\[
+ \{(u,b),(v,b+x_{uv})\}\qquad(u<v,\ b\in\F_2).
+\]
+All additions in this section are over $\F_2$. Define the cut space
+\[
+ \cut_m=\{\delta s:s\in\F_2^m\},
+ \qquad (\delta s)_{uv}=s_u+s_v.
+\]
+
+\begin{lemma}\label{lem:lift}
+If $x\in\cut_m$, then $L(x)$ is two disjoint $m$-cliques. If $x\notin\cut_m$, then $L(x)$ is connected. Every $L(x)$ is $(m-1)$-regular.
+\end{lemma}
+\begin{proof}
+When $x=\delta s$, the value $b+s_v$ is preserved by each lifted edge. Each of its two level sets induces a clique.
+
+Conversely, if every triangle has label sum zero, fixing root $1$ and setting $s_1=0$, $s_v=x_{1v}$ gives $x_{uv}=s_u+s_v$, so $x$ is a cut. A noncut therefore has an odd-label triangle. Traversing its lifted walk connects the two sheets of one base vertex. Since the base graph is connected, every lifted vertex is reachable from them, so the lift is connected. The degree assertion follows directly from construction.
+\end{proof}
+
+Let $D_{\rm cut}(m)$ denote maximum-message deterministic complexity of recognizing $\cut_m$, with one player per base vertex knowing its incident labels.
+\begin{proposition}\label{prop:reduction}
+\[
+ D_{\rm conn}(2m)\ge\tfrac12D_{\rm cut}(m).
+\]
+\end{proposition}
+\begin{proof}
+A base player can construct the neighborhoods of both of its lifted vertices from its own star labels. Simulate their two messages and concatenate them. The referee reverses the connectivity answer using Lemma~\ref{lem:lift}.
+\end{proof}
+This family has no small reservoir, no private-versus-shared edge ambiguity, and no sparse-degree shortcut. It is nevertheless only a \emph{candidate} hard family: a general nearly linear bound for $D_{\rm cut}$ is not proved here.
+
+\subsection{An exact reformulation and a concrete missing lemma}
+Gauge labelings by $s_1=0$ and write $\mathcal S=\{s\in\F_2^m:s_1=0\}$. Set $x_{vv}=0$ and define the local candidate
+\[
+ P_v(x)_i=x_{vi}+x_{v1}\quad(i\in[m]).
+\]
+For each $v$ this maps its star bijectively onto $\mathcal S$: the candidate's coordinate $v$ reveals $x_{v1}$, and then every other star bit is recovered. If $x=\delta s$, all candidates equal $s$.
+
+Thus arbitrary local encoders can be written as $h_v(P_v(x))$ for arbitrary maps $h_v:\mathcal S\to\{0,1\}^b$. A protocol can be correct precisely when no noncut $x$ has the same transcript as any cut $\delta s$.
+
+Here is a sufficient collision statement whose proof would settle the desired direction.
+\begin{question}[Symmetric-collision target]\label{q:main}
+For $b=o(m)$, or at least for $b\le m/\operatorname{polylog}m$, must every family $h_1,\ldots,h_m:\mathcal S\to\{0,1\}^b$ admit an $s\in\mathcal S$ and a nonzero symmetric zero-diagonal binary matrix $D$ with $D_{1i}=0$ for every $i$, such that
+\[
+ \boxed{h_v(s+D_v)=h_v(s)\quad\text{for all }v?}
+\]
+Here $D_v$ denotes row $v$.
+\end{question}
+The extra condition $D_1=0$ makes this target stronger than necessary for the reduction. If it holds, put $x=\delta s+D$. Then $P_v(x)=s+D_v$. Because a cut with zero root row must be zero, $D\ne0$ implies $x$ is a noncut. Hence the transcripts of $x$ and $\delta s$ agree, contradicting correctness. No claim is made that this target has been established.
+
+\section{What can be proved for the lift family}
+\begin{proposition}[Local XOR-linear cut recognition]
+For XOR-linear star encoders, the concatenated sketch matrix for recognizing $\cut_m$ has rank at least $\binom m2-1$.
+\end{proposition}
+\begin{proof}
+Let $K$ be the global kernel. Correctness implies $K\subseteq\cut_m$, since otherwise a noncut collides with the zero cut. Suppose $\dim K\ge2$. Choose independent $\delta a,\delta b\in K$ with $a_1=b_1=0$, and define
+\[
+ D_{uv}=a_ub_v+b_ua_v.
+\]
+At vertex $v$,
+\[
+ D_v=a_v(\delta b)_v+b_v(\delta a)_v.
+\]
+Its local linear encoder therefore kills $D_v$, so $D\in K$. The matrix has zero root row, is symmetric and zero-diagonal, and is nonzero because $a,b$ are independent. Thus it is not a cut, a contradiction. Hence $\dim K\le1$.
+\end{proof}
+
+\begin{proposition}[A common nonlinear candidate fingerprint]\label{prop:commonnonlinear}
+Suppose every base vertex uses the same arbitrary map $h:\mathcal S\to\{0,1\}^b$ on its candidate $P_v(x)$. Correct cut recognition requires
+\[
+ b\ge\frac{m-1}{2}-O(1).
+\]
+If there are $r$ possible maps, the same argument gives $rb\ge(m-1)/2-O(1)$.
+\end{proposition}
+\begin{proof}
+A color class cannot contain an affine plane $s,s+a,s+b,s+a+b$ with $a,b$ independent. Otherwise define $D_{uv}=a_ub_v+b_ua_v$ as above. Each candidate of $x=\delta s+D$ is
+\[
+ P_v(x)=s+a_vb+b_va,
+\]
+one of the four plane points. All messages equal $h(s)$ although $x$ is not a cut.
+
+An affine-plane-free set $A\subseteq\F_2^{m-1}$ satisfies
+\[
+ \binom{|A|}{2}\le2^{m-1}-1,
+\]
+because two distinct unordered pairs with the same sum form an affine plane. Thus $|A|\le1+2^{m/2}$. The $2^b$ fibers must cover $2^{m-1}$ points, proving the bound. For $r$ maps, apply this to their joint tuple.
+\end{proof}
+The shared-map condition is substantive. The next section proves that the rank-two witness used here cannot extend to arbitrary vertex-dependent encoders by a more careful pigeonhole count alone.
+
+\section{A barrier to bounded-rank switching}
+\begin{theorem}\label{thm:barrier}
+For all $n,r$, there exist vertex-specific XOR-linear maps with
+\[
+ b=2r+\lceil\log_2n\rceil+2
+\]
+bits per vertex such that no two graphs whose Boolean adjacency difference has rank at most $r$ over $\F_2$ have the same transcript.
+\end{theorem}
+\begin{proof}
+Choose the local $b\times(n-1)$ binary matrices independently and uniformly. A fixed nonzero symmetric zero-diagonal difference matrix $D$ with $t$ nonzero rows is killed by all local maps with probability $2^{-bt}$.
+
+There are at most $\binom nt2^{2rt}$ candidate matrices of rank at most $r$ with $t$ nonzero rows: choose their support, and overcount the resulting $t\times t$ matrices by factorizations $UV$ with $U\in\F_2^{t\times r}$ and $V\in\F_2^{r\times t}$. Symmetry implies that all nonzero columns also lie in the chosen row support. Therefore the failure probability is at most
+\[
+ \sum_{t=1}^n\binom nt2^{2rt-bt}
+ \le\sum_{t\ge1}2^{t(\log_2n+2r-b)}
+ \le\sum_{t\ge1}4^{-t}<1.
+\]
+Fix a successful choice.
+\end{proof}
+
+A biclique has binary adjacency rank at most two, as does $ab^T+ba^T$. Consequently $O(\log n)$-bit, vertex-dependent encoders can exclude every collision of these forms simultaneously. These maps do \emph{not} decide connectivity: Theorem~\ref{thm:xor} still guarantees a nonzero kernel direction when $nb<N$, but that direction must have larger rank. Thus this is a barrier to a proof strategy, not a connectivity upper bound. A proof aimed at $B\gg\sqrt n$ must allow substantially higher-rank differences for at least some encoders, or use a fundamentally different indistinguishability mechanism.
+
+\section{Other attempted routes and exact points of failure}
+\paragraph{A naive density argument is false.}
+Large local message fibers need not admit any nonempty symmetric graph realization. Arrange the vertices on a cycle ($n\ge3$), and at vertex $v$ allow
+\[
+ \mathcal A_v=\{\varnothing\}\cup
+ \{S:\operatorname{succ}(v)\in S,\ \operatorname{pred}(v)\notin S\}.
+\]
+Each family has $2^{n-3}+1$ members, but the only graph whose every neighborhood belongs to its corresponding family is the empty graph. Indeed, any active vertex must be adjacent to its successor, whose nonempty neighborhood is forbidden to contain that predecessor. These families can be fibers of one-bit encoders. They do not form a correct connectivity protocol; they disprove a proposed fiber-realization lemma.
+
+\paragraph{An exact product-collision lower bound is also false.}
+Let $X$ be a uniform labeled graph on four vertices and $S$ an independent uniform cut graph. For arbitrary one-bit local maps it is not always true that
+\[
+ \Pr[\text{transcript}(X)=\text{transcript}(S)]\ge2^{-4}.
+\]
+The verification script contains explicit truth tables with probability $27/512<1/16$. Thus an entropy proof using a product of local collision probabilities needs an additional, genuinely proved inequality. The counterexample does not exclude weaker bounds with a larger constant in the exponent.
+
+\paragraph{Many-bit or many-side variants of the reservoir.}
+The current proof hides a side choice at each center, then hides the joint transcript of the reservoir. Replacing the side bit by more labels is not automatically a gain: preserving the required local collisions across many distinct groups consumes more reservoir coordinates, and a mismatch need not connect all groups. No improved unrestricted bound was obtained by this route.
+
+\paragraph{Pure transcript counting and certificate lower bounds.}
+A connectivity decision protocol need not identify the graph or output any of its edges. Therefore the $\binom n2$ input bits and the larger strong-certificate output lower bounds cannot be charged directly to its transcript. Injectivity was proved above only under the explicitly stated XOR condition.
+
+\paragraph{What would constitute the next genuine advance.}
+The symmetric-collision target in Question~\ref{q:main} isolates one route: obtain high-rank simultaneous local collisions for arbitrary, vertex-dependent colorings. A second route is a normal-form theorem converting short arbitrary encoders into a controlled-alternation, controlled-degree, or mergeable family at only polylogarithmic cost. No such normal-form theorem is proved here. The established inequalities show what it would need to control, rather than assuming it for free.
+
+\section{Verification and limitations}
+The accompanying standard-library Python program performs exhaustive checks of the algebraic-degree formula for $2\le n\le6$ over characteristics $2,3,5,7$ (33,866 graph inputs), all nonzero tree-overlay directions in that range (33,861 cases), and the complete-graph two-lift dichotomy for $2\le m\le6$ (33,866 base graphs). It checks 33,480 affine-plane instances and 800 common-additive switches, both signed and unsigned. It also verifies the explicit failed product-collision inequality.
+
+An optional SciPy mixed-integer model exhausts the constraints for one-bit-per-player cut recognition on $K_4$; HiGHS reported infeasibility. This is a small-instance solver check, not a formally certified asymptotic lower bound, and no theorem relies on it.
+
+The proofs have been self-audited, not independently agent-reviewed. The unrestricted result remains the draft's $\Omega(\sqrt n)$ bound; this note does not claim otherwise. The strongest proved additions are the two general structural inequalities and their near-linear consequences for several substantial encoder classes.
+
+\begin{thebibliography}{9}
+\bibitem{draft} N. Efe \c{C}ekirge, Amit Chakrabarti, Purna Dutta, Andrew McGregor, and Vinayak.
+\emph{Annihilator Sketches and the Complexity of Distributed Vertex Connectivity}.
+Supplied working draft, especially Section 6, PDF pages 13--17.
+\bibitem{RT26} Peter Robinson and Ming Ming Tan.
+\emph{Polynomial Lower Bounds for Distributed Graph Sketching with Tiny Error: Connectivity and Spanning Tree Construction}.
+arXiv:2609.05795, September 5, 2026.
+\url{https://arxiv.org/abs/2609.05795}.
+\bibitem{RVW17} Tim Roughgarden, Sergei Vassilvitskii, and Joshua R. Wang.
+\emph{Shuffles and Circuits (On Lower Bounds for Modern Parallel Computation)}.
+Manuscript dated August 16, 2017; preliminary version SPAA 2016. Theorem 5.3.
+\url{https://timroughgarden.org/papers/mr.pdf}.
+\bibitem{Z26} Zhijun Zhang.
+\emph{Settling Nondeterministic Communication Complexity of Graph Connectivity}.
+arXiv:2610.32346, October 23, 2026.
+\url{https://arxiv.org/abs/2610.32346}.
+\end{thebibliography}
+\end{document}

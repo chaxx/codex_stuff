@@ -1,0 +1,170 @@
+{
+  "python": "3.12.14",
+  "randomness": "none",
+  "onebit_cut_exhaustive": [
+    {
+      "m": 3,
+      "bits_per_vertex": 1,
+      "output_complement_normalized": true,
+      "normalized_protocols": 512,
+      "constraints": 16,
+      "exists": true,
+      "search_nodes_by_depth": [
+        1,
+        1,
+        4,
+        6
+      ],
+      "elapsed_seconds": 2.112200002102327e-05,
+      "truth_tables": [
+        0,
+        6,
+        10
+      ]
+    },
+    {
+      "m": 4,
+      "bits_per_vertex": 1,
+      "output_complement_normalized": true,
+      "normalized_protocols": 268435456,
+      "constraints": 448,
+      "exists": false,
+      "search_nodes_by_depth": [
+        1,
+        128,
+        16384,
+        401408,
+        81920
+      ],
+      "elapsed_seconds": 0.2754374559999633
+    }
+  ],
+  "anchored_counterexample": {
+    "m": 4,
+    "bits": 1,
+    "maps": [
+      "s1",
+      "s2",
+      "s3",
+      "s1"
+    ],
+    "anchored_instances_checked": 56,
+    "anchored_collision": false,
+    "full_cut_recognition_collision": {
+      "cut_mask": 0,
+      "noncut_mask": 34,
+      "noncut_one_edges": [
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "transcript": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "lift_and_rank": {
+    "labelings_checked": 33866,
+    "m_range": [
+      2,
+      6
+    ],
+    "method": "union-find on lift vs root path potentials",
+    "alternating_rank_counts": {
+      "2": {
+        "0": 1,
+        "2": 1
+      },
+      "3": {
+        "0": 1,
+        "2": 7
+      },
+      "4": {
+        "0": 1,
+        "2": 35,
+        "4": 28
+      },
+      "5": {
+        "0": 1,
+        "2": 155,
+        "4": 868
+      },
+      "6": {
+        "0": 1,
+        "2": 651,
+        "4": 18228,
+        "6": 13888
+      }
+    },
+    "finite_rank_count_inequality": "#{D alternating m by m: rank(D)<=r} <= 2^(r*m)"
+  },
+  "root_zero_milp": [
+    {
+      "m": 4,
+      "bits": 1,
+      "anchors": 8,
+      "nonzero_differences": 7,
+      "variables": 60,
+      "constraints": 200,
+      "scipy_version": "1.17.0",
+      "time_limit_seconds": 30.0,
+      "status": 0,
+      "message": "Optimization terminated successfully. (HiGHS Status 7: Optimal)",
+      "elapsed_seconds": 0.02519082100002379,
+      "nonroot_truth_tables": [
+        [
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "exact_witness_recheck_passed": true
+    },
+    {
+      "m": 5,
+      "bits": 1,
+      "anchors": 16,
+      "nonzero_differences": 63,
+      "variables": 288,
+      "constraints": 1904,
+      "scipy_version": "1.17.0",
+      "time_limit_seconds": 30.0,
+      "status": 2,
+      "message": "The problem is infeasible. (HiGHS Status 8: model_status is Infeasible; primal_status is None)",
+      "elapsed_seconds": 10.246807083000022
+    }
+  ]
+}

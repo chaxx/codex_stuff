@@ -1,0 +1,3 @@
+# Workflow: adversarial audit of original draft and research notes
+
+Audit sections independently: §4 sketch primitive, §5 upper bounds, §6 lower bounds, and both prior notes. Start with the primary original source, treat extracted text as convenience only. Make a table of every lemma with status; for each issue report severity, exact source/section, counterexample or missing inference, and minimal repair. Do not accept statements because prior notes say tests passed. Have fresh `proof_auditor` independently derive each major theorem. Cross-check primary literature. Output `results/CONSOLIDATED.md` and detailed `results/agents/proof_auditor/` reports.

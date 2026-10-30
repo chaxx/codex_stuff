@@ -1,0 +1,12 @@
+{
+  "markdown_files_checked": 12,
+  "missing_local_links": [],
+  "source_changes": [
+    "sources/prior-notes/vertex_connectivity_research_note.tex"
+  ],
+  "other_source_files_match_upload": true,
+  "pdf_sha256": {
+    "manuscript/lower_bound_candidate.pdf": "9950a25ea25d73fbb7fe1ea9e2b8cf8f8974a56e03a1ebbf0760c422854e421e",
+    "results/dimension-correction/vertex_connectivity_research_note.pdf": "fa8b3f65eaa05ea1cb78dc5312a869cd100b6471f34c8793c15e869bc12b9547"
+  }
+}

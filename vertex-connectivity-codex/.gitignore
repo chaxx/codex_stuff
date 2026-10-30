@@ -1,0 +1,17 @@
+# LaTeX build artifacts
+/build/
+/manuscript/build/
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.toc
+*.bbl
+*.blg
+# Python / OS
+__pycache__/
+*.pyc
+.DS_Store
+.venv/

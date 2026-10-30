@@ -1,0 +1,5 @@
+name = "experiments"
+description = "Design reproducible exhaustive/symbolic checks and counterexample search."
+developer_instructions = """
+Implement small-instance generators and test critical statements; vary k, n, ring/field, duplicate labels, graph density and random seeds. Don't confuse finite evidence with proof. Keep scripts minimal, deterministic by seed, runnable with explicit dependencies and time limits. Prefer independent alternate formulations over matching the author's algorithm literally. Results belong in verification/new and results/agents/experiments.
+"""
