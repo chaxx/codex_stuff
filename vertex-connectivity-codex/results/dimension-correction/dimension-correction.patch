@@ -1,0 +1,89 @@
+--- results/dimension-correction/vertex_connectivity_research_note.before.tex	2026-10-29 18:30:27.740637232 +0000
++++ sources/prior-notes/vertex_connectivity_research_note.tex	2026-10-29 18:31:08.449331606 +0000
+@@ -59,21 +59,63 @@
+ \section{One-sided private-randomness decoding}
+ The essential observation is that a rank calculation can certify connectivity even when sparse recovery could hallucinate edges.
+ 
++\paragraph{Fixed edge coordinates and transformed sketches.}
++Write $\mathcal E=\binom{[n]}2$ and $N=\binom n2$. Every incidence row and every aggregate incidence row is indexed by all $N$ original potential edges, including absent edges. AGM-style contraction sums rows; it does not replace this edge universe by the pairs of supernodes. Orient an edge $\{u,v\}$, $u<v$, with coefficient $+1$ at $u$ and $-1$ at $v$, and write $\epsilon_{v,u}=1$ for $v<u$ and $-1$ for $v>u$.
++
++For clarity, the draft's raw neighbor sketch is
++\[
++ s(v)_q=\sum_{u\in N_G(v)}\epsilon_{v,u}a_u^q,
++ \qquad 0\le q\le 2d+k.
++\]
++Its vertex-indexed Vandermonde map has $n$ columns. The \emph{transformed} edge-indexed map below is a different matrix with $N$ columns. Write
++\[
++ P_F(X)=\prod_{z\in F}(X-a_z)
++       =\sum_{\ell=0}^{|F|}\beta_\ell X^\ell,
++ \qquad t=2d+k-|F|+1.
++\]
++For $v\notin F$, the coordinator computes the $t$-coordinate row
++\begin{align*}
++ \widetilde s_F(v)_j
++ &=a_v^jP_F(a_v)\sum_{\ell=0}^{|F|}\beta_\ell s(v)_{j+\ell}\\
++ &=\sum_{u\in N_G(v)\setminus F}
++   \epsilon_{v,u}P_F(a_v)P_F(a_u)(a_va_u)^j,
++ \qquad 0\le j<t.
++\end{align*}
++This fixes the sign convention consistently with the draft's displayed raw sketch. The transformation uses only $F$, the public labels, and the stored sketch, without knowledge of the graph. The value of $t$ above retains all coordinates in the draft's construction; the rank argument below also applies to a shorter retained Vandermonde map whenever it has the stated column-rank guarantee.
++
+ \begin{lemma}[Deterministic rank certificate]\label{lem:rank}
+-Fix a failure set $F$, and let $J\subseteq G-F$ be any known spanning subgraph with components $C_1,\ldots,C_r$. Aggregate the draft's transformed deterministic sketches over each $C_i$, and let $M$ be the matrix having these aggregates as rows. Write $c=|\cc(G-F)|$. Then
++Fix a failure set $F$ with $|F|\le k$, and let $J\subseteq G-F$ be any known spanning subgraph with components $C_1,\ldots,C_r$. Aggregate the transformed deterministic sketches over each $C_i$, and let $M\in\F_Q^{r\times t}$ have rows $M_{i,\cdot}=\sum_{v\in C_i}\widetilde s_F(v)$. Write $c=|\cc(G-F)|$. Then
+ \[
+  \rank M\le r-c.
+ \]
+ If at most $d$ edges of $G-F$ join different components of $J$, and the transformed sketch has the draft's $d$-sparse-recovery Vandermonde guarantee, then equality holds.
+ \end{lemma}
+ \begin{proof}
+-Contract each $C_i$ and discard loops. Let $B$ be the signed incidence matrix of the resulting $r$-vertex multigraph, and let $m$ be its number of edges. Distinct surviving original edges retain distinct evaluation labels. The aggregate matrix has the factorization
++Let $\mathcal B_F\in\F_Q^{(n-|F|)\times N}$ be the signed incidence matrix with the fixed column set $\mathcal E$: a surviving edge of $G-F$ has the two oriented nonzero entries just specified, while an absent edge or an edge incident to $F$ has a zero column. Let $R\in\F_Q^{r\times(n-|F|)}$ have $R_{i,v}=1$ if $v\in C_i$ and zero otherwise. Thus $B=R\mathcal B_F\in\F_Q^{r\times N}$ is the aggregate incidence matrix. Edges internal to a component cancel, leaving their original columns equal to zero; parallel edges between supernodes keep their distinct original columns.
++
++For every potential edge $e=\{u,v\}\in\mathcal E$, set
+ \[
+- M=BW\Psi^{\mathsf T},
++ W_{e,e}=P_F(a_u)P_F(a_v),\qquad
++ \Psi_{j,e}=(a_ua_v)^j\quad(0\le j<t),
+ \]
+-where $W$ is diagonal with entries $P_F(a_u)P_F(a_v)\ne0$, and $\Psi$ is the Vandermonde measurement matrix restricted to these $m$ edges. The contracted multigraph has exactly $c$ components, so $\rank B=r-c$. This immediately gives the upper bound, for every graph and every outcome of the sampling.
++with all off-diagonal entries of $W$ zero. In particular,
++\[
++ W\in\F_Q^{N\times N},\qquad
++ \Psi\in\F_Q^{t\times N},\qquad
++ \underbrace{M}_{r\times t}
++ =\underbrace{B}_{r\times N}
++  \underbrace{W}_{N\times N}
++  \underbrace{\Psi^{\mathsf T}}_{N\times t}.
++\]
++The diagonal entry of $W$ is zero when an endpoint fails and is nonzero when both endpoints survive. Thus $W$ need not be invertible on the full edge universe. Distinct original edges retain distinct product labels $a_ua_v$, under the draft's field-label assumption. Viewing the nonzero columns of $B$ as a contracted multigraph is useful for its rank: it has $c$ components, so $\rank B=r-c$. The full-size factorization therefore gives $\rank M\le r-c$ for every graph and every sampling outcome.
+ 
+-When $m\le d$, $\Psi$ has full column rank. Therefore $W\Psi^{\mathsf T}$ has a right inverse, and multiplication by it preserves the rank of $B$. Hence $\rank M=r-c$.
++For the equality proof only, let $S\subseteq\mathcal E$ consist of the surviving edges of $G-F$ joining different components of $J$, and put $m=|S|$. Define the analytic restrictions
++\[
++ B_S=B_{[:,S]}\in\F_Q^{r\times m},\quad
++ W_S=W_{[S,S]}\in\F_Q^{m\times m},\quad
++ \Psi_S=\Psi_{[:,S]}\in\F_Q^{t\times m}.
++\]
++All columns of $B$ outside $S$ are zero, so $\rank B_S=\rank B$ and $M=B_SW_S\Psi_S^{\mathsf T}$. These smaller matrices are proof-only restrictions, not new protocol coordinates and not matrices obtained by replacing original edges with supernode pairs. If $m=0$, then $B=M=0$ and equality is immediate. If $1\le m\le d$, the Vandermonde guarantee implies that $\Psi_S$ has full column rank; only this restricted matrix, not necessarily $\Psi$, has that property. Also $W_S$ is invertible. Hence $W_S\Psi_S^{\mathsf T}\in\F_Q^{m\times t}$ has a right inverse $T_S\in\F_Q^{t\times m}$. Multiplying gives $MT_S=B_S$, so $\rank M\ge\rank B_S=r-c$. Together with the upper bound, this proves equality.
+ \end{proof}
+ 
+ \begin{corollary}[One-sided connectivity test]
+@@ -132,7 +174,7 @@
+ \[
+  p_1,\ldots,p_D\in\ker(\Phi_F^{\mathsf T}).
+ \]
+-There is room for them because the kernel dimension is at least $m-|F|\ge D$. Set $z_t(v)=p_t^{\mathsf T}\Phi_v$. For each component $C_i$ of $J-F$, form
++Here $\Phi_F\in\F_5^{m\times|F|}$ and each $p_t\in\F_5^m$. There is room for them because the kernel dimension is at least $m-|F|\ge D$. Set $z_t(v)=p_t^{\mathsf T}\Phi_v$. For each component $C_i$ of $J-F$, form the matrix $M\in\F_5^{r\times D}$ with entries
+ \[
+  M_{i,t}=\sum_{v\in C_i}z_t(v)\,p_t^{\mathsf T}f(v),\qquad t\in[D].
+ \]
+@@ -141,7 +183,7 @@
+  M_{i,t}=\sum_{\substack{v\in C_i,\ u\notin C_i\cup F\\uv\in E(G)}}
+  \epsilon_{v,u}z_t(v)z_t(u).
+ \end{equation}
+-Thus every column of $M$ lies in the column space $S$ of the incidence matrix of the graph obtained by contracting $C_1,\ldots,C_r$ in $G-F$. In particular,
++The same fixed-edge convention applies here. Let $B\in\F_5^{r\times N}$ be the aggregate incidence matrix defined as in Section~2, and let $K\in\F_5^{N\times D}$ have $K_{\{u,v\},t}=z_t(u)z_t(v)$. Equation~\eqref{eq:constant-transform} says $M=BK$, a product of dimensions $(r\times N)(N\times D)=r\times D$. The vertex-indexed random matrix $\Phi\in\F_5^{m\times n}$ is not an edge-incidence matrix and does not change the ambient edge universe. Thus every column of $M$ lies in $S=\operatorname{im}B\subseteq\F_5^r$; viewing the nonzero columns as a contracted multigraph shows that $\dim S=r-c$. In particular,
+ \[
+  \rank M\le\dim S=r-c=h
+ \]

@@ -1,0 +1,1 @@
+Run workflows/03-full-draft-audit.md. Treat original author draft and both prior AI research notes as unverified, perform adversarial proof review with fresh independent subagents. Consolidate.

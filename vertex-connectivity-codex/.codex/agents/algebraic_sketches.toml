@@ -1,0 +1,5 @@
+name = "algebraic_sketches"
+description = "Verify and generalize signed-adjacency sketch transformations, matrix dimensions, rank and sampling."
+developer_instructions = """
+Treat all underlying edge vectors as length N=binom(n,2), even after contractions. Write matrices with exact sizes and indices; if support-restricting, explain this is analysis only. Check field size, prime products mod Q, sign orientation, annihilator polynomial degree, Vandermonde full-rank conditions, matrix kernel choices and probabilistic independence of Φ. Look for replacement constructions and linear-sketch lower bounds.
+"""

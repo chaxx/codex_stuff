@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "note": "Finite checks only; no independent research agent was available.",
+  "rank": {
+    "matrix_cases": 24057,
+    "sparse_exact_rank_cases": 22593,
+    "moment_coordinates_checked": 88842
+  },
+  "indexing": {
+    "index_gadgets_checked": 264
+  },
+  "sparsifier": {
+    "graphs_and_thresholds_checked": 592,
+    "oracle_queries": 4375,
+    "edges_added": 2329
+  },
+  "elapsed_seconds": 1.83
+}

@@ -1,0 +1,368 @@
+                           Deterministic Connectivity:
+                      Audited Baseline and Collision Barriers
+
+
+                                Research addendum, 29 October 2026
+
+
+                                                  Abstract
+                                                                                      √
+          We give a self-contained proof of the supplied draft’s deterministic Ω( n) lower bound
+      for exact Boolean connectivity in the simultaneous vertex-neighborhood model, with explicit
+      alphabet and bit constants. We also establish limits on several proposed collision arguments:
+      local linear maps with r + ⌈log2 n⌉ bits exclude every nonzero adjacency difference of binary
+                                                                                                  rank
+      at most r; local XOR-linear cut-space recognizers have concatenated rank at least m      2 − 1; a
+      four-vertex example defeats a particular anchored collision template; and public r-sheet√lifts have
+      a direct reconstruction protocol. These results do not improve the unrestricted Ω( n) lower
+      bound. This is an independent addendum, with no claim of novelty or author acceptance.
+
+
+1    Definitions and scope
+An input is a simple undirected graph G on the public labeled vertex set [n]. Player v knows exactly
+its own neighborhood NG (v) and sends one deterministic message to a referee. All messages are
+simultaneous. Encoders may be vertex-specific and nonlinear, and the referee has no computational
+restriction. The required output is the single bit indicating whether G is connected, with correctness
+on every input. No shared knowledge of other vertices’ neighborhoods is available.
+    The communication cost B is the worst-case maximum bits sent by one vertex, not the total
+number of bits. We distinguish a message alphabet of cardinality at most 2b , fixed-length binary
+messages, and arbitrary binary strings of maximum length B. All logarithms are base two unless
+written ln. Only ordinary connectivity, or k = 1, is treated here.
+                                                        (n)
+    For algebraic statements, edge indicators lie in F2 2 , with the fixed ambient edge set [n]
+                                                                                                
+                                                                                               2 . An
+adjacency difference D is a symmetric zero-diagonal matrix over F2 ; Dv denotes its incident row
+with the diagonal coordinate omitted. The ranks of these adjacency matrices and the ranks of
+concatenated message maps are different quantities.
+
+
+2    The unrestricted connectivity baseline
+Theorem 2.1 (D-01, ordinary connectivity). Let n ≥ 2 and let b ≥ 1 be an integer. If an exact
+deterministic connectivity protocol has at most 2b possible messages at each vertex, then
+                                                            √
+                                               n              n
+                                    b>        √         >       .                         (1)
+                                         768(⌈ n⌉ + 1)     2304
+                                                                         √
+Consequently, fixed-length messages of maximum length B satisfy B > n/2304. Variable-length
+                                                                              √
+binary strings of maximum length B, including the empty string, satisfy B > n/4608.
+
+                                                      1
+    We first prove the counting fact used to select a common partition. A family S ⊆ {1, 2, 3, 4}q
+shatters a coordinate set if its projection onto those coordinates contains every assignment.
+Lemma 2.2 (Four-symbol shattering bound). If S ⊆ {1, 2, 3, 4}q shatters no coordinate set of size
+d, then
+                                                d−1
+                                                      !
+                                                X q
+                              |S| ≤ F (q, d) :=        3q−j .
+                                                j=0
+                                                    j
+Here F (q, 0) = 0 and F (q, d) = 4q for d > q.
+Proof. The cases d = 0 and d > q are immediate, since any nonempty family shatters the empty
+coordinate set. Induct on q, with q = 0 immediate. Let Sa be the slice having last coordinate a,
+projected onto the first q − 1 coordinates. Set U = 4a=1 Sa and I = 4a=1 Sa . Each projected word
+                                                     S             T
+
+occurs in at most three slices unless it is in I, so
+                                               4
+                                               X
+                                       |S| =         |Sa | ≤ 3|U| + |I|.
+                                               a=1
+
+The family U cannot shatter d coordinates. The family I cannot shatter d − 1 coordinates, since
+adjoining the last coordinate would then give a shattered d-set in S. Induction and Pascal’s identity
+give
+                           |S| ≤ 3F (q − 1, d) + F (q − 1, d − 1) = F (q, d).
+
+
+Proof of Theorem 2.1. Fix a correct protocol and put
+                                       √ 
+                              q = 128( n + 1),        M = n − q.
+      √                                                            √
+If b > n, the asserted alphabet bound is immediate, so assume b ≤ n. If M < 4(qb + 1), then,
+using q ≥ 4 and b ≥ 1,
+                              n < (4b + 1)q + 4 ≤ (4b + 2)q ≤ 6bq,                       (2)
+as desired. We therefore suppose, towards a contradiction, that
+                                               M ≥ 4(qb + 1).                                          (3)
+This implies q < n. Choose a reservoir U of q vertices and designate the remaining M vertices as
+centers c1 , . . . , cM . For each center let fi (S) be its actual message when its neighborhood is S ⊆ U .
+Local witnesses. Set d = 16(b + 1). Consider any d-element set Y ⊆ U and one center ci . Pair
+the vertices of Y and designate a pair {α, β}. Consider all sets A containing α, excluding β, and
+choosing exactly one vertex of each other pair. There are 2d/2−1 = 28b+7 > 22b such sets. The
+ordered message pair (fi (A), fi (Y \ A)) has at most 22b values. Thus distinct sets A0 , A1 have the
+same ordered pair of messages. Define
+                                 Pi0 = A0 ∩ A1 , Pi1 = Y \ (A0 ∪ A1 ),
+                                 Ri0 = A0 \ A1 , Ri1 = A1 \ A0 .
+These sets partition Y . The first two contain α and β, respectively. The last two are nonempty
+because the two choices differ on at least one entire pair. Equality of the two ordered messages
+yields
+                                      fi (Pi0 ∪ Ri0 ) = fi (Pi0 ∪ Ri1 ),
+                                                                                                       (4)
+                                      fi (Pi1 ∪ Ri0 ) = fi (Pi1 ∪ Ri1 ).
+
+                                                        2
+Label these four sets by P0 , P1 , R0 , R1 , respectively. Every extension of this labeling to U contains
+the same nonempty witnessing subsets.
+One partition for every center. Call a labeling U → {P0 , P1 , R0 , R1 } good for ci if it admits four
+nonempty subsets in the indicated classes satisfying (4), and bad otherwise. The local argument
+shows that the bad family shatters no d-element coordinate set. Under an independently uniform
+labeling of U , Lemma 2.2 gives
+                                                       !
+                                             X q
+                                        −q
+                  Pr[bad for ci ] ≤ 4                  3q−j = Pr[Z < d],      Z ∼ Bin(q, 1/4).
+                                             j<d
+                                                   j
+            √
+Since b ≤       n, we have d ≤ q/8. Write µ = q/4 and t = ln 2. Exponential Markov’s inequality
+implies
+
+                          Pr[Z ≤ µ/2] ≤ etµ/2 Ee−tZ = etµ/2 (3/4 + e−t /4)q
+                                             ≤ exp{µ(t/2 − 1/2)} ≤ e−µ/8 = e−q/32 .
+
+Here 1 + x ≤ ex and (ln 2)/2 − 1/2 < −1/8 justify the last two steps. A union bound over the
+M ≤ n centers gives                                               √
+                          Pr[some center is bad] ≤ ne−q/32 ≤ ne−4 n < 1.
+                                      √
+For the final inequality, setting x = n ≥ 1 gives 2 ln x − 4x < 0. Therefore a partition U =
+P0 ⊔ P1 ⊔ R0 ⊔ R1 is good for every center. Fix it and fix witnessing subsets for every center. No
+independence of the centers’ bad events was used.
+A global transcript collision. For a, z ∈ {0, 1}M , define G(a, z) by making P0 ∪ R0 and P1 ∪ R1 into
+cliques and giving ci exactly the neighborhood Piai ∪ Rizi . There are no other edges. Both cliques
+are nonempty. The graph G(x, x) has exactly two components, because every center attaches within
+just one clique. If x ̸= y, a center at a differing coordinate joins the two cliques in G(x, y); all other
+centers have a neighbor in a clique. Thus G(x, y) is connected.
+    By (4), each center’s message depends only on ai . A vertex in P0 ∪ P1 sees its fixed clique and
+centers selected only by a, so its message depends only on a. A vertex in R0 ∪ R1 analogously has a
+message depending only on z. Their joint transcript T (z) has at most 2qb values. Since (3) implies
+M > qb, there are distinct x, y with T (x) = T (y). The full transcripts of G(x, x) and G(x, y) agree:
+the center and P messages agree because a = x is fixed, and the R messages agree by construction.
+Their connectivity differs, a contradiction.
+    It follows that M < 4(qb + 1), so (2) proves b > n/(6q). This argument also covers all small n:
+when q ≥ n, the inequality M < 4(qb + 1) already holds and no reservoir is constructed. Finally
+ √             √
+⌈ n⌉ + 1 < 3 n for n ≥ 2, which proves the second inequality in (1).
+    Zero-bit protocols are impossible, since the empty and complete graphs require different outputs.
+Fixed-length messages therefore have B ≥ 1, and we apply the alphabet result with b = B. For
+variable-length strings, the available alphabet has size B      2j = 2B+1 − 1 < 2B+1 . Apply the result
+                                                          P
+                                                        √ j=0
+with b = B + 1 and use B + 1 ≤ 2B to obtain B > n/4608.
+
+
+3    A barrier to bounded-rank collision witnesses
+Theorem 3.1. For integers n ≥ 2 and r ≥ 0, there are vertex-specific linear maps
+
+                                 Av : Fn−1
+                                       2   −→ Fb2 ,            b = r + ⌈log2 n⌉ ,
+
+
+                                                           3
+such that every nonzero symmetric zero-diagonal n × n matrix D of rank at most r satisfies
+Av (Dv ) ̸= 0 for some vertex v. Consequently, two graph inputs with a nonzero adjacency-XOR
+difference of rank at most r have distinct concatenated transcripts under these maps.
+
+   The maps in this theorem are deterministic after being fixed by an existence argument. The
+theorem supplies neither a connectivity-deciding referee nor an efficient uniform construction of the
+maps. A chosen dense map can be evaluated in O(nb) binary operations per vertex.
+
+Lemma 3.2. For t ≥ 1 and r ≥ 0, there are at most 2rt symmetric zero-diagonal t × t matrices
+over F2 of rank at most r.
+
+Proof. Such a matrix represents an alternating bilinear form. If the form is nonzero, choose two
+vectors with pairing one. Their two-dimensional span is nondegenerate and splits off from its
+orthogonal complement. Iterating gives a basis in which the form is a direct sum of blocks ( 01 10 )
+and a zero block. Thus the rank is even, say 2k, and the matrix can be written U J2k U T , where J2k
+is the sum of k such blocks and U has t rows and 2k columns. This follows by transforming the
+displayed normal form back to the original basis.
+    Put r′ = 2⌊r/2⌋. Padding U with zero columns represents every matrix of rank at most r as
+                         ′               ′
+U Jr′ U T with U ∈ Ft×r
+                      2    . There are 2r t ≤ 2rt choices of U . The representation need not be unique.
+If r′ = 0, it represents only the zero matrix, as required.
+
+Proof of Theorem 3.1. Choose every entry of every local matrix Av independently and uniformly in
+F2 . Fix a nonzero adjacency difference D and let T be its set of nonzero rows, with t = |T |. Each
+row Dv , v ∈ T , is nonzero, so its image under Av is uniformly distributed in Fb2 . The local maps are
+independent. Hence
+                                     Pr[Av (Dv ) = 0 for all v] = 2−bt .
+Symmetry confines every nonzero entry to the principal submatrix on T . Moreover t ≥ 2, because a
+nonzero off-diagonal entry makes both its rows nonzero. Lemma 3.2 bounds the number of possible
+matrices on each fixed T by 2rt . Union-bounding over actual row supports gives
+                                                               n
+                                                                         !
+                                                               X n
+               Pr[some nonzero D of rank ≤ r is killed] ≤                2(r−b)t
+                                                               t=2
+                                                                     t
+                                                               n                   n
+                                                                         !
+                                                                 n                   1
+                                                                         n−t ≤
+                                                               X                   X
+                                                           ≤                                  < 1.
+                                                               t=2
+                                                                     t             t=2
+                                                                                         t!
+
+For the strict inequality, t! ≥ 2t−1 gives the upper bound nt=2 2−(t−1) = 1 − 2−(n−1) < 1. The count
+                                                          P
+
+includes matrices whose support is smaller than T , which only enlarges the bound; the probability
+2−bt is assigned only to matrices with actual support T . Thus a successful choice of maps exists.
+For r = 0, 1 the claim is vacuous, since a nonzero alternating matrix has rank at least two.
+
+Remark 3.3. In particular, rank-two differences can all be excluded by ⌈log2 n⌉ + 2 bits per vertex.
+A universal collision claim using only the message budget therefore cannot require such differences
+for every encoder collection. This does not refute an argument using additional consequences of
+an assumed correct connectivity protocol, exclude high-rank collisions, or give an unrestricted
+connectivity upper bound. If b > n − 1, full-row transmission already provides a simpler separator.
+
+
+
+
+                                                  4
+4    Two cut-space facts with restricted conclusions
+On the complete graph Km , define the binary cut space
+
+                             Cm = {δs : s ∈ Fm
+                                             2 },          (δs)uv = su + sv .
+
+In the local recognition problem, vertex v knows only the edge-label vector xv on its star and sends
+a message; the referee must decide whether x ∈ Cm . This is a distinct task from unrestricted graph
+connectivity.
+Theorem 4.1 (Local XOR-linear cut recognition). Let m ≥ 3. Suppose local linear maps Lv :
+Fm−1
+ 2   → FB
+        2 , concatenated as L, permit an arbitrary referee to recognize Cm exactly. Then
+          v
+
+
+                                                           !
+                                                          m
+                                           rank L ≥         − 1.
+                                                          2
+
+For the maximum fixed-length message budget B = maxv Bv , this gives
+                                              !                  & m         '
+                              X             m                          2    −1
+                                   Bv ≥       − 1,         B≥                  .
+                               v            2                              m
+
+Proof. Let K = ker L. Every vector in K has the same transcript as the zero cut, so correctness
+implies K ⊆ Cm . Suppose dim K ≥ 2, and choose independent cuts δs, δt ∈ K. Define
+
+                                    xuv = sv tu + tv su        (u ̸= v).
+
+This is a symmetric edge labeling. At vertex v,
+
+                                          xv = sv (δt)v + tv (δs)v ,
+
+since the two copies of sv tv cancel in characteristic two. Local linearity gives Lv (xv ) = 0 at every
+vertex, hence x ∈ K.
+    The labels zv = (sv , tv ) ∈ F22 affinely span F22 . Otherwise some nonzero (a, b) and constant c
+satisfy asv + btv = c for every v, implying aδs + bδt = 0, contrary to independence. Choose p, q, r
+such that zq + zp and zr + zp are independent. Direct expansion then gives
+
+                             xpq + xqr + xrp = det(zq + zp , zr + zp ) = 1.
+
+Every cut has triangle sum zero, so x ∈
+                                      / Cm , contradicting x ∈ K ⊆ Cm . Thus dim K ≤ 1, and
+rank-nullity gives the rank bound. Finally rank L ≤ v Bv ≤ mB proves the communication
+                                                      P
+
+consequences.
+
+    The decisive step uses locality and linearity of each encoder. The theorem imposes no linearity
+assumption on the referee, but its proof does not extend to arbitrary nonlinear encoders. Its primary
+conclusion concerns the total rank of L, rather than a rank bound at each vertex.
+Proposition 4.2 (A four-vertex obstruction to an anchored template). Let S = {s ∈ F42 : s0 = 0}
+and define
+                 h0 (s) = s1 ,   h1 (s) = s2 ,   h2 (s) = s3 , h3 (s) = s1 .
+There is no s ∈ S and nonzero symmetric zero-diagonal matrix D with root row D0 = 0 for which
+
+                                   hv (s + Dv ) = hv (s)    for every v.                            (5)
+
+                                                      5
+Here Dv is the full four-coordinate row, including its zero diagonal entry. Nevertheless, the associated
+local messages hv (Pv (x)), where
+
+                            Pv (x)i = xvi + xv0   (0 ≤ i ≤ 3),      xvv = 0,
+
+do not recognize C4 .
+
+Proof. The anchor condition makes D01 = D02 = D03 = 0, and also ensures that every s + Dv
+belongs to S. Since the hv are linear, (5) at vertices 1, 2, 3 forces, respectively, D12 = D23 = D31 = 0.
+These are all six possible edges, so D = 0.
+   The map Pv depends only on the local star and always has coordinate zero equal to zero. On a
+cut x = δs with s0 = 0, it satisfies Pv (x) = s. For an arbitrary x, the four messages are
+
+                               (x01 , x12 + x10 , x23 + x20 , x31 + x30 ).
+
+Set x02 = x23 = 1 and all other edge labels to zero. The transcript is zero, as for the zero cut. But
+the triangle (0, 1, 2) has label sum one, so x is not a cut. No referee receiving these messages can
+recognize C4 exactly.
+
+   This is an exact finite counterexample to the specified zero-root-row template. It does not refute
+an asymptotic nonlinear lower bound or show that every possible cut/noncut collision has been
+excluded.
+
+
+5    The cost of describing public graph lifts
+Proposition 5.1 (Public-base reconstruction). Fix a public simple base graph H on m labeled
+vertices and an integer r ≥ 2. The input has public labels (v, a) ∈ V (H) × [r] and is promised to be
+an r-sheet lift: every base edge is replaced by a perfect matching between its two fibers, and there
+are no other edges. There is an exact deterministic simultaneous protocol reconstructing the entire
+input, and hence deciding connectivity, with at most
+
+                                             ∆(H) ⌈log2 r⌉
+
+bits per lifted vertex and polynomial decoding time.
+
+Proof. Order the neighbors of each base vertex using the public labels. Vertex (v, a) has exactly
+one neighbor in each fiber u with u ∈ NH (v). In that order, it sends the sheet index of each such
+neighbor, using ⌈log2 r⌉ bits per index. Its message is computed from its own neighborhood. The
+referee knows the order and the base labels, so it reconstructs all edges from these indices. Ordinary
+graph search decides connectivity. The encoding and decoding are polynomial in the explicit input
+and output sizes.
+
+   For H = Km and n = mr, the budget is (m − 1) ⌈log2 r⌉ = O((n/r) log r). Along a growing
+sequence of such families, for any fixed C ≥ 0, the condition
+                                             r
+                                                 = ω(logC n)
+                                           log r
+
+makes this budget o(n/ logC n) and therefore rules out an Ω(n/ logC n) lower bound on that promise
+family. The public base and public fiber labels are essential assumptions. The proposition supplies
+no such protocol when these data are hidden, and no upper bound for arbitrary graphs.
+
+                                                   6
+Provenance and open scope
+The baseline is the k = 1 specialization of the supplied original draft, sources/draft/paper-body.
+pdf, Section 6, pages 12–16. Its explicit reconstruction is in results/agents/lower_bounds/
+2026-10-29-analysis.md. The four-symbol bound is proved here in full; the draft attributes its
+general form to Karpovsky–Milman. No external citation is needed for the arguments in this note.
+    The separate proof audit is recorded in results/agents/proof_auditor/2026-10-29-blind.
+md and results/agents/proof_auditor/2026-10-29-audit.md. The blind report independently
+proved the cut-rank bound, the four-vertex counterexample, the public-lift protocol, and a version
+of Theorem 3.1 with two extra output bits. It initially left the central baseline unresolved; the
+subsequent audit checks the released self-contained baseline proof.
+    Theorem 3.1 uses the auditor’s symplectic counting proof and its subsequent refinement removing
+those two bits. The refinement also received a separate reverse audit in results/agents/algebraic_
+sketches/2026-10-29-rank-constant-audit.md. The original algebraic analysis is results/
+agents/algebraic_sketches/2026-10-29-analysis.md. These records document independent
+checks within this research run; they do not establish publication priority or author acceptance.
+                                                 √
+    An unrestricted improvement beyond Ω( n) remains open in this work. General-k claims,
+randomized protocols, stronger nonlinear collision conjectures, and unselected prior-note assertions
+receive no verdict here. This document is independently prepared; the original author’s editable
+source was not supplied, and the source PDF is not modified.
+
+
+
+
+                                                 7
+

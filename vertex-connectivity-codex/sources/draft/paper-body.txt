@@ -1,0 +1,926 @@
+ 1                    Annihilator Sketches and the Complexity of
+ 2                         Distributed Vertex Connectivity
+ 3   N. Efe Çekirge∗         Amit Chakrabarti†             Purna Dutta‡          Andrew McGregor§           Vinayak¶
+
+
+
+ 4                                                        Abstract
+ 5           We introduce annihilator sketching, a technique for handling vertex deletions directly on graph
+ 6       sketches. After the sketches have been formed, a referee can algebraically eliminate all edges incident
+ 7       to a specified set of vertices, without recovering those edges or accessing the original graph. Supporting
+ 8       𝑘 vertex deletions incurs only an additive 𝑂(𝑘) overhead in sketch dimension.
+ 9           We apply this technique to vertex connectivity in the distributed graph sketching model, where each
+10       vertex of an 𝑛-vertex graph simultaneously sends a single message, computed from its neighborhood,
+11       to a referee. Annihilator sketching yields√protocols for 𝑘-vertex connectivity using 𝑂(𝑘 log3 𝑛) bits
+12       per vertex with public randomness and 𝑂( 𝑘𝑛 log3/2 𝑛) bits per vertex with private randomness. Both
+13       protocols succeed with high probability and construct sparse subgraphs preserving connectivity after
+14       every set of fewer than 𝑘 vertex failures. The public-randomness bound improves the 𝑂(𝑘 log4 𝑛) bound
+15       obtained from Assadi and Shah (SOSA 2023), resolving a question of Assadi. The private-randomness
+16       protocol extends the approach of Holm et al. (FOCS 2019) from ordinary connectivity to vertex connec-
+17       tivity. Our public-randomness construction also yields a one-pass dynamic streaming algorithm using
+18       𝑂(𝑘𝑛 log3 𝑛) bits of space.
+                                                                                             √
+19           We complement these randomized protocols with a lower bound of Ω(𝑘 + 𝑛) on the maximum
+20       message length of any deterministic protocol for 𝑘-vertex connectivity, for 1 ≤ 𝑘 ≤ 𝑛/6. This bound
+21       holds even for deciding whether the graph is 𝑘-vertex-connected, without requiring a certificate. In par-
+                                                                                                              √
+22       ticular, for ordinary connectivity it improves the Ω(𝑛1/3 ) bound of Robinson and Tan (2026) to Ω( 𝑛).
+
+
+
+
+     ∗
+     †
+     ‡
+       This author is supported by the National Science Foundation under grant CCF-2521579.
+     §
+       This author is supported by the National Science Foundation under grant CCF-2521579.
+     ¶
+       This author is supported by the National Science Foundation under grant CCF-2521579.
+23   1        Introduction
+24           - Testing 𝑘-node connectivity.
+25                 – Public Random: 𝑂(𝑘 log3 𝑛)
+                                        √
+26                 – Private Random: 𝑂( 𝑘𝑛 log? 𝑛)
+                                         √
+27                 – Deterministic: Ω(𝑘 + 𝑛)
+28           - Distinguish 𝑘-node connected instances from disconnected instances.
+29                 – Public Random: 𝑂(log 𝑛 log2 (𝑛/𝑘)
+                                             √
+30                 – Private Random: 𝑂(min( 𝑛, 𝑛/𝑘))
+                                          √
+31                 – Deterministic: Ω(min( 𝑛, 𝑛/𝑘)
+
+
+32   2        Technical Overview
+33   2.1       Upper Bound
+34   2.2       Lower Bound
+
+35   3        Preliminaries
+36   signed incidence and adjacency matrices
+
+37   Graphs. Throughout this work, a graph is undirected, simple, and unweighted, unless qualified other-
+38   wise. All computational problems we consider have a single input graph 𝐺 = (𝑉 , 𝐸), where |𝑉 | = 𝑛; we
+39   usually identify 𝑉 with the set [𝑛] ∶= {1, … , 𝑛}. Formally, each edge 𝑒 ∈ 𝐸 is a set consisting of exactly
+40   two nodes. For a set 𝑍 ⊆ 𝑉 , we define 𝐸(𝑍) = {𝑒 ∈ 𝐸 ∶ 𝑒 ⊆ 𝑍} and 𝜕𝑍 = {𝑒 ∈ 𝐸 ∶ |𝑒 ∩ 𝑍| = 1}, i.e., the set
+41   of edges lying inside 𝑍 and those “leaving” 𝑍, respectively. We write 𝐺[𝑍] for the subgraph of 𝐺 induced
+42   by 𝑍 and 𝐺 ∖ 𝑍 for the subgraph obtained by deleting 𝑍; note that 𝐺 ∖ 𝑍 = 𝐺[𝑉 ∖ 𝑍]. For a set 𝐹 ⊆ 𝐸,
+43   we write 𝐺 − 𝐹 for the (non-induced) subgraph (𝑉 , 𝐸 ∖ 𝐹 ).
+
+44   The Distributed Graph Sketching Model. We study problems where the desired output is some pos-
+45   sibly multi-valued function 𝜙 of the input graph 𝐺.1 We focus on distributed graph algorithms for such
+46   problems.
+47         Our basic model of computation is a communication game among 𝑛 + 1 players named plr1 , … , plr𝑛
+48   and coord. For each 𝑖 ∈ [𝑛], plr𝑖 is a node player who receives as input the neighborhood of node 𝑖 ∈ 𝑉 ,
+49   i.e., the set N(𝑖) ∶= {𝑗 ∈ 𝑉 ∶ {𝑖, 𝑗} ∈ 𝐸}. Note that the knowledge of each edge 𝑒 ∈ 𝐸 is shared between the
+50   two node players corresponding to 𝑒’s endpoints. The special player coord is the coordinator, who receives
+51   no input, but must eventually output 𝜙(𝐺). The distributed algorithm for computing 𝜙(𝐺) is modeled as
+52   a protocol that operates as follows. There is a public random string 𝑅 accessible to all players. Each node
+53   player plr𝑖 computes a message 𝑀𝑖 = msg𝑖 (N(𝑖), 𝑅) ∈ {0, 1}∗ ; the messages 𝑀1 , … , 𝑀𝑛 are simultaneously
+54   communicated to coord. The coordinator then computes a function out(𝑀1 , … , 𝑀𝑛 , 𝑅) that specifies the
+55   output. The functions {msg𝑖 }𝑖∈[𝑛] and out completely specify the protocol. Note that the communication in
+56   the protocol is non-interactive.
+57         Let Π be a protocol for some graph problem 𝜙 and let msg𝑖 , out, and 𝑀𝑖 be as above. The error probabil-
+58   ity err(Π) is defined to be max{err(Π, 𝐺) ∶ 𝐺 an 𝑛-vertex graph}, where err(Π, 𝐺) = 𝐏𝐫[out(𝑀1 , … , 𝑀𝑛 , 𝑅) ≠
+         1
+             We have chosen to avoid the full formalism of relations for capturing problems with multiple correct answers.
+
+
+                                                                       1
+59    𝜙(𝐺)]. The communication cost is defined to be ‖Π‖ = max𝐺,𝑅 ∑𝑛𝑖=1 len(𝑀𝑖 ), the worst-case total length
+60    of all messages sent by the node players. Our primary goal in designing efficient protocols is to achieve
+61    err(Π) ≤ 𝛿—where 𝛿 is either a small constant or, better yet, 𝛿 = 𝑛−𝑂(1) —while also achieving communi-
+62    cation cost ‖Π‖ = 𝑜(𝑛2 ), which is sublinear in the input size.2
+
+63    Problems of Interest. The problems studied in this work are (i) the Boolean graph-connectedness
+64    problem (henceforth, is-conn), where 𝜙(𝐺) is true if 𝐺 is connected and false otherwise; (ii) the connected-
+65    components problem (henceforth, conn-comps), where 𝜙(𝐺) is the partition of 𝑉 into the connected
+66    components of 𝐺, and (iii) the spanning-forest problem (henceforth, sp-forest), where 𝜙(𝐺) is multi-
+67    valued and can be any spanning forest of 𝐺. It is immediate that this list of problems has been given in
+ 68   increasing order of difficulty.
+
+
+69    4        A New Sketching Primitive
+70    Previous protocols for 𝑘-vertex connectivity in [GMT15; AS23], as well as for related problems such as the
+71    even more fundamental connectivity problem, [AGM12; HKTZZ19] all rely on maintaining linear sketches
+72    of each node’s row in the signed incidence matrix of 𝐺. The streaming and public randomness dynamic
+73    sketching protocols maintain an 𝓁0 sampler sketch of this vector, while the private randomness distributed
+74    sketching and deterministic protocols maintain a sparse recovery sketch.
+75         All of these protocols proceed by building up “blobs” of nodes, which eventually form the components
+76    of a graph. When using rows of the signed incidence matrix, the useful property is that for an edge {𝑢, 𝑣} ∈ 𝐸
+77    with 𝑢 < 𝑣, coordinate {𝑢, 𝑣} of 𝑢’s row will have a +1 while the same coordinate in 𝑣’s row will have a
+78    −1. Therefore, taking linear sketches of these rows, and summing up the sketches from all nodes within
+79    a certain blob cancel out all of the interior edges, leaving only the boundary edges. Then, 𝓁0 sampling or
+80    sparse recovery can be used to recover edges from this boundary, allowing the blob to be built up further.
+81         Our main contribution in this work is to introduce a new primitive based on sketching the signed
+82    adjacency matrix instead of the signed incidence matrix. Initially, this might seem counterintuitive based
+83    on how the protocols operate, since these sketches cannot be summed up to remove interior edges; an
+84    edge {𝑖, 𝑗} will now appear in the 𝑗 th coordinate of 𝑖’s row and the 𝑖th coordinate of 𝑗’s row. However,
+85    we will show that these sketches can be postprocessed—without knowledge of the graph—such that they
+86    act as a sketch of a scaling of the signed incidence matrix. Thus, summing up the sketches of a set of
+87    nodes eliminate the set’s interior edges. This allows our new primitive to recover the results of [AGM12;
+88    HKTZZ19]. Furthermore, the main benefit of this new primitive is that for any set of nodes 𝐹 ⊆ 𝑉 with
+89    |𝐹 | ≤ 𝑘, revealed after sketching, the sketches can be processed—again without knowledge of the graph—
+90    such that they sketch a scaling of the signed incidence matrix of 𝐺[𝑉 ⧵ 𝐹 ], with only an additive 𝑘 factor to
+91    the sketch dimension. This allows us—as shown in Section 5.1—to solve the 𝑘-vertex-connectivity problem
+92    without any graph subsampling, improving on [AS23] in the dynamic streaming and public randomness
+93    distributed sketching settings, and give the first protocol in the private randomness distributed sketching
+ 94   setting.
+95         We now describe how to use our sketching primitive to achieve both sparse recovery and fingerprint
+96    sketches. Using these two together also gives us have sparseness detection and recovery, which has many
+97    uses, such as constructing 𝓁0 samplers. The rest of the section explains how the sketches are computed.
+
+98    Theorem 1. Consider a graph 𝐺 and parameters 𝑐, 𝑑, 𝑘 ∈ ℕ. Knowing only their neighborhood N(𝑣), each
+99    node 𝑣 ∈ 𝑉 can maintain linear sketches 𝑠(𝑣) and 𝑓 (𝑣) using 𝑂((𝑑 + 𝑘) log 𝑛) and 𝑂((𝑐 + 𝑘) log 𝑛) bits
+100   respectively, with the following guarantee. For any subset of nodes 𝐹 ⊆ 𝑉 with |𝐹 | ≤ 𝑘, a sketch 𝑠̃𝐹 (𝑣) can be
+          2
+              A communication cost of 𝑂(𝑛2 ) is trivial for any problem 𝜙: this large a cost allows each plr𝑖 to simply send N(𝑖) as is.
+
+
+                                                                          2
+101   computed from only 𝑠(𝑣) and 𝐹 such that 𝑠̃𝐹 (𝑣) is a 𝑑-sparse recovery sketch, allowing the decoding of 𝑣’s row
+102   in the signed incidence matrix of 𝐺[𝑉 ⧵ 𝐹 ]. Similarly, 𝑓̃𝐹 (𝑣) can be computed from only 𝑓 (𝑣) and 𝐹 such that
+103   𝑓̃𝐹 (𝑣) is a fingerprint sketch of 𝑣’s row of the signed incidence matrix of 𝐺[𝑉 ⧵ 𝐹 ], with fingerprint collision
+104   probability 𝑛−𝑐 .
+105       Knowing their neighborhood N(𝑣), each node 𝑣 can construct their row of the signed adjacency matrix
+106   of 𝐺, 𝐴± ∈ {−1, 0, 1}𝑛×𝑛 . Call this row 𝒂𝑣± . We first explain the sparse recovery sketch. Each node maintains
+107   the sketch 𝑠(𝑣) = Ψ𝒂𝑣± , using the sketching matrix Ψ ∈ 𝔽(2𝑑+𝑘+1)×𝑛
+                                                                       𝑄          for an appropriately large finite field
+108   𝔽𝑄 . Throughout this paper, we shall take 𝑄 to be a prime with 𝑄 = Θ(𝑛3 ). Note that this makes 𝑠(𝑣) a
+109   (2𝑑 + 𝑘 + 1)-dimensional sketch vector where each element can be denoted with 𝑂(log 𝑛) bits. Formally
+110   stated,
+                                               ⎡ (𝑎1 )0        (𝑎2 )0         (𝑎𝑛 )0 ⎤
+                                               ⎢ (𝑎 )1         (𝑎2 )1         (𝑎𝑛 )1 ⎥⎥
+                                                     1
+                                           Ψ=⎢                                          ,
+                                               ⎢                                      ⎥
+                                               ⎢(𝑎1 )2𝑑+𝑘 (𝑎2 )2𝑑+𝑘         (𝑎𝑛 )2𝑑+𝑘 ⎥
+                                               ⎣                                      ⎦
+111
+                       th                        th
+      where 𝑎𝑖 is the 𝑖 prime. We use the 𝑖 prime for convenience, but note that any set of elements 𝑛 field
+112   elements that satisfy the conditions 𝑎𝑖 ≠ 𝑎𝑗 when 𝑖 ≠ 𝑗 and 𝑎𝑖 𝑎𝑗 ≠ 𝑎𝑘 𝑎𝑙 when {𝑖, 𝑗} ≠ {𝑘, 𝑙} would work
+113   as well. In contrast, the choice 𝑎𝑖 = 𝑖, which is the usual choice for sparse recovery sketches, would not
+114   satisfy the second requirement.
+115   Remark. The annihilator sketch construction does not inherently require Ψ to be a Vandermonde matrix
+116   with prime field elements. In fact, we can more generally state the following. For any set 𝐹 ⊆ 𝑉 with
+117   |𝐹 | ≤ 𝑘, denote the submatrix of Ψ on only the columns of 𝐹 as Ψ𝐹 . Let 𝒑1 , … , 𝒑𝑚 ∈ ker(ΨT𝐹 ) be 𝑚 ≥ 2𝑑
+118   linearly independent vectors chosen with knowledge only of Ψ𝐹 , and take 𝑃 = [𝒑1 ⋯ 𝒑𝑚 ]. Then, the
+119   necessary property for Ψ is that for any 2𝑑 distinct pairs {𝑢, 𝑣} with 𝑢, 𝑣 ∉ 𝐹 , the elementwise product of
+120   (𝑃 T Ψ)’s 𝑢th and 𝑣th columns are linearly independent.
+121        For the rest of this section, we shall use for clarity of exposition the explicit Vandermonde construction
+122   for Ψ above. This allows us to use an explicit annihilator polynomial in place of the kernel and linearly
+123   independent vector construction, as well as leading to efficient and well-known decoding procedures for
+124   sparse recovery Efe: citation of a sparse recovery decoder using Vandermonde. Section 5.3 shows a con- !!!
+125   struction for the fingerprint sketch that uses a fully random matrix, which highlights these more general
+126   construction ideas instead of the specific structure and properties of the Vandermonde.
+127       In effect, our sketch maintains
+                                      𝑠(𝑣)𝑡 = ∑ 𝐴±𝑣,𝑢 (𝑎𝑢 )𝑡 = ∑ sgn(𝑢 − 𝑣)(𝑎𝑢 )𝑡
+                                               𝑢∈N(𝑣)                   𝑢∈N(𝑣)
+
+128   for each coordinate 𝑡 ∈ {0, … , 2𝑑 +𝑘}, where sgn(⋅) is the signum function. We zero-index the sketch vector
+129   for convenience. Importantly, as a linear sketch, 𝑠(𝑣) can be maintained for turnstile streams as well as
+130   computed in distributed models.
+131       Now, after the sketch is computed, take a subset of nodes 𝐹 ⊆ 𝑉 with |𝐹 | ≤ 𝑘. Using the set 𝐹 , we
+132   define the polynomial over 𝔽𝑄
+                                                                                  |𝐹 |
+                                               𝑃𝐹 (𝑥) = ∏(𝑥 − 𝑎𝑧 ) = ∑ 𝑏𝑖 𝑥 𝑖 ,                                       (1)
+                                                          𝑧∈𝐹                     𝑖=0
+                                        |𝐹 |
+133   with the set of coefficients {𝑏𝑖 }𝑖=0 obtained by expanding the product. It can be seen that 𝑃𝐹 (𝑎𝑣 ) = 0 if
+134   𝑣 ∈ 𝐹 . We now define the sketch 𝑠̃𝐹 (𝑣) such that
+                                                                           |𝐹 |
+                                                                𝑡
+                                               𝑠̃𝐹 (𝑣)𝑡 = (𝑎𝑣 ) 𝑃𝐹 (𝑎𝑣 ) ∑ 𝑏𝑖 𝑠(𝑣)𝑡+𝑖                                 (2)
+                                                                          𝑖=0
+
+
+                                                                    3
+135   for each coordinate 𝑡 ∈ {0, … , 2𝑑 +𝑘−|𝐹 |}. Notice that 𝑠(𝑣)’s
+                                                               ̃      dimension is |𝐹 | less than 𝑠(𝑣), and that it can be
+136   computed using only 𝑃𝐹 and 𝑠(𝑣), without any knowledge of the graph. Therefore, it can be computed by
+137   the coordinator in the distributed sketching model, and at the end of the stream in the turnstile streaming
+138   model. We make the following observation about this sketch.
+
+139   Lemma 4.1. For any node 𝑣 ∉ 𝐹 and each coordinate 𝑡 ∈ {0, … , 2𝑑 + 𝑘 − |𝐹 |},
+
+                                         𝑠̃𝐹 (𝑣)𝑡 =     ∑         sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ).
+                                                      𝑢∈𝑁 (𝑣)⧵𝐹
+
+140   Proof. We expand the definition from eq. (2) as
+                                            |𝐹 |                                    |𝐹 |
+                              (𝑎𝑣 )𝑡 𝑃𝐹 (𝑎𝑣 ) ∑ 𝑏𝑖 𝑠(𝑣)𝑡+𝑖 = (𝑎𝑣 )𝑡 𝑃𝐹 (𝑎𝑣 ) ∑ 𝑏𝑖 ∑ sgn(𝑣 − 𝑢)(𝑎𝑢 )𝑡+𝑖
+                                            𝑖=0                                    𝑖=0      𝑢∈N(𝑣)
+                                                                                                              |𝐹 |
+                                                             = ∑ sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 ) 𝑃𝐹 (𝑎𝑣 ) ∑ 𝑏𝑖 (𝑎𝑢 )𝑖
+                                                                                                   𝑡
+
+                                                                  𝑢∈N(𝑣)                                     𝑖=0
+                                                                                                   𝑡
+                                                             = ∑ sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 ) 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 )
+                                                                  𝑢∈N(𝑣)
+
+                                                             =      ∑          sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ),
+                                                                  𝑢∈N(𝑣)⧵𝐹
+
+141   where the last equality is because 𝑃𝐹 (𝑎𝑢 ) = 0 when 𝑢 ∈ 𝐹 .
+
+142       Now, take the signed incidence matrix 𝐵𝐹± of 𝐺[𝑉 ⧵ 𝐹 ], and scale each column {𝑣, 𝑢} by 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ).
+143   Note that the scaling itself does not depend on the graph. Then, 𝑠̃𝐹 (𝑣) is the sketch of 𝑣’s row of this matrix
+144   using the sketching matrix
+
+                                     ⎡ (𝑎1 𝑎2 )0            (𝑎1 𝑎3 )0                          (𝑎𝑛 𝑎𝑛−1 )0      ⎤
+                                     ⎢ (𝑎 𝑎 )1              (𝑎1 𝑎3 )1                          (𝑎𝑛 𝑎𝑛−1 )1      ⎥
+                                     ⎢      1 2                                                                 ⎥,
+                                     ⎢                                                                          ⎥
+                                     ⎢(𝑎1 𝑎2 )2𝑑+𝑘−|𝐹 | (𝑎1 𝑎3 )2𝑑+𝑘−|𝐹 |                   (𝑎𝑛 𝑎𝑛−1 )2𝑑+𝑘−|𝐹 | ⎥
+                                     ⎣                                                                          ⎦
+145   since for a node 𝑣, (𝐵𝐹± )𝑣,{𝑣,𝑢} is 1 if 𝑣 < 𝑢 and −1 if 𝑣 > 𝑢. Using the facts that |𝐹 | ≤ 𝑘 and that each product
+146   𝑎𝑖 𝑎𝑗 is distinct for pairs {𝑖, 𝑗}, is a 𝑑-sparse recovery sketching matrix. Since the scaling itself is nonzero,
+147   recovering the underlying vector in the columnwise scaling of 𝐵𝐹± allows us to recover the underlying
+148   vector in 𝐵𝐹± itself. This proves the sparse recovery component of Theorem 1.
+149        Furthermore, since we have a columnwise scaling of the signed incidence matrix, for a subset of nodes
+150   𝐶 ⧵ 𝑉 , summing up ∑𝑣∈𝐶 𝑠̃𝐹 (𝑣) still cancels out the interior edges, leaving only a 𝑑-sparse recovery sketch
+151   of the boundary edges. Formally, we can state this as follows.
+
+152   Lemma 4.2. For any set of vertices 𝐶 ⊆ 𝑉 ⧵ 𝐹 and each coordinate 𝑡 ∈ {0, … , 2𝑑 + 𝑘 − |𝐹 |},
+
+                                      ∑ 𝑠̃𝐹 (𝑣)𝑡 =        ∑         sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ).
+                                      𝑣∈𝐶               {𝑣,𝑢}∈𝐸∶
+                                                       𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+153   Proof. We can expand the left hand side as
+
+              ∑     ∑        sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ) =              ∑          sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 )
+              𝑣∈𝐶 𝑢∈N(𝑣)⧵𝐹                                                 (𝑣,𝑢)∶{𝑣,𝑢}∈𝐸,
+                                                                             𝑣,𝑢∈𝐶,𝑣<𝑢
+
+
+                                                                           4
+                                                                        +           ∑        sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 )
+                                                                            (𝑣,𝑢)∶{𝑣,𝑢}∈𝐸,
+                                                                              𝑣,𝑢∈𝐶,𝑣>𝑢
+
+                                                                        +           ∑        sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ).
+                                                                            (𝑣,𝑢)∶{𝑣,𝑢}∈𝐸,
+                                                                             𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+154   The first two sums are over the exact same edges {𝑣, 𝑢} ∈ 𝐸, once from each endpoint. Therefore, the
+155   signum function makes sure the first two sums exactly cancel out, leaving only the third. The ordering of
+156   the pair (𝑣, 𝑢) can also be removed, since each edge is only counted from the endpoint in 𝐶.
+
+157        Now, we explain the fingerprint sketch. The main new ingredient of this sketch over sparse recovery is
+158   its use of public randomness, in order to create sketch vectors with low collision probability. Specifically,
+                                                                                    ( 𝑛)
+159   each node, using public randomness, will compute a random vector 𝒓 ∈ 𝔽𝑄2 , where each entry 𝒓{𝑢,𝑣} is
+160   and independently and uniformly drawn field element of 𝔽𝑄 ⧵ {0}. Then, each node maintains the sketch
+161   𝑓 (𝑣) = Φ𝒂𝑣± for a sketching matrix Φ ∈ 𝔽(𝑐+𝑘+1)×𝑛
+                                                   𝑄      . It is intuitive to see Φ as the matrix product of the
+162   Vandermonde matrix of primes we used in the sparse recovery sketch and a random diagonal matrix, as
+
+                               ⎡ (𝑎1 )0   (𝑎2 )0                    (𝑎𝑛 )0 ⎤⎡𝒓{𝑣,1}   0                   0 ⎤
+                               ⎢ (𝑎 )1    (𝑎2 )1                    (𝑎𝑛 )1 ⎥⎥⎢⎢ 0   𝒓{𝑣,2}                     ⎥
+                                    1
+                             Φ=⎢                                                                               ⎥.
+                               ⎢                                            ⎥⎢                            0 ⎥
+                               ⎢(𝑎1 )𝑐+𝑘 (𝑎2 )𝑐+𝑘                  (𝑎𝑛 )𝑐+𝑘 ⎥⎢ 0                    0   𝒓{𝑣,𝑛} ⎥
+                               ⎣                                            ⎦⎣                                 ⎦
+163   Formally, 𝒓{𝑣,𝑣} is undefined, so we can assume that entry in the diagonal matrix is set to 0. As our graph
+164   is simple, it will be multiplied by 0 in the signed adjacency row 𝒂𝑣± anyways. This sketch maintains
+
+                                              𝑓 (𝑣)𝑡 = ∑ sgn(𝑣 − 𝑢)𝒓{𝑣,𝑢} (𝑎𝑢 )𝑡
+                                                          𝑢∈N(𝑣)
+
+165   for each coordinate 𝑡 ∈ {0, … , 𝑐 + 𝑘}.
+166       Now, given a subset 𝐹 ⧵ 𝑉 with |𝐹 | ≤ 𝑘, the process of the coordinator mirrors the above case for sparse
+167   recovery sketching. We again construct the polynomial 𝑃𝐹 (𝑥) exactly as in eq. (1), and use it to compute
+168   the sketch 𝑓̃𝐹 (𝑣) such that
+                                                                             |𝐹 |
+                                               𝑓̃𝐹 (𝑣)𝑡 = (𝑎𝑣 )𝑡 𝑃𝐹 (𝑎𝑣 ) ∑ 𝑏𝑖 𝑓 (𝑣)𝑡+𝑖
+                                                                            𝑖=0
+
+169   for each coordinate 𝑡 ∈ {0, … , 𝑐 + 𝑘 − |𝐹 |}. The equivalent observation to Lemma 4.1 is then the following.
+170   The proof proceeds identically, so we do not reproduce it for conciseness.
+
+171   Lemma 4.3. For any node 𝑣 ∉ 𝐹 and each coordinate 𝑡 ∈ {0, … , 𝑐 + 𝑘 − |𝐹 |},
+
+                                  𝑓̃𝐹 (𝑣) =     ∑        sgn(𝑣 − 𝑢)𝒓{𝑣,𝑢} (𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ).
+                                              𝑢∈N(𝑣)⧵𝐹
+
+172       Before explaining the collision probability of this fingerprint sketch, we can also apply the same logic
+173   as in Lemma 4.2—using also the fact that public randomness supplies 𝑣 and 𝑢 with the same 𝒓{𝑣,𝑢} —in order
+174   to see that for any set of vertices 𝐶 ⊆ 𝑉 ⧵ 𝐹 and each coordinate 𝑡 ∈ {0, … , 𝑐 + 𝑘 − |𝐹 |},
+
+                               ∑ 𝑓̃𝐹 (𝑣)𝑡 =       ∑         sgn(𝑣 − 𝑢)𝒓{𝑣,𝑢} (𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ).
+                               𝑣∈𝐶              {𝑣,𝑢}∈𝐸∶
+                                               𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+
+
+
+                                                                    5
+175   All that remains is to show, for a fixed 𝐹 of size |𝐹 | ≤ 𝑘, that the collision probability of ∑𝑣∈𝐶 𝑓̃𝐹 (𝑣), which
+176   is the sketch of the actual underlying boundary edge vector of 𝐶, and the sketch of a purported underlying
+177   boundary edge vector of 𝐶 is 𝑛−𝑐 . In particular, by taking 𝐶 as a singleton, we retrieve the fingerprint
+178   component of Theorem 1. For clarity, call the actual boundary edge vector 𝒃 and the purported boundary
+179   edge vector 𝒃 ′ , such that 𝒃 ≠ 𝒃 ′ . Call the sketch of 𝒃 ′ 𝑓 . Notice that this is a specific instantiation of the
+180   fingerprint collision probability since the coordinator can detect when a recovered underlying vector does
+181   not correspond to a possible boundary edge vector of 𝐶, e.g., by containing edges internal or external to 𝐶,
+182   without needing to consult the fingerprint. In fact, we can think of 𝒃 ′ as the actual boundary edge sketch
+183   of 𝐶 under a different purported edge set 𝐸′ that differs from 𝐸 in at least the boundary of 𝐶.
+
+184   Proof of collision probability. 𝒃 ≠ 𝒃 ′ implies, as explained above, that
+                       {                                     } {                                       }
+                        {𝑣, 𝑢} ∣ {𝑣, 𝑢} ∈ 𝐸, 𝑣 ∈ 𝐶, 𝑢 ∉ 𝐶 ∪ 𝐹 ≠ {𝑣, 𝑢} ∣ {𝑣, 𝑢} ∈ 𝐸′ , 𝑣 ∈ 𝐶, 𝑢 ∉ 𝐶 ∪ 𝐹 .
+
+185         So, we have that
+
+      ∑ 𝑓̃𝐹 (𝑣) − 𝑓 𝑡 =      ∑        sgn(𝑣 − 𝑢)𝒓{𝑣,𝑢} (𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ) −             ∑ sgn(𝑣 − 𝑢)𝒓{𝑣,𝑢} (𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 )
+      𝑣∈𝐶                 {𝑣,𝑢}∈𝐸⧵𝐸′ ∶                                                   {𝑣,𝑢}∈𝐸′ ⧵𝐸∶
+                          𝑣∈𝐶,𝑢∉𝐶∪𝐹                                                      𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+                                         (−1)1[{𝑣,𝑢}∈𝐸 ] sgn(𝑣 − 𝑢)𝒓{𝑣,𝑢} (𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 )
+                                                       ′
+                      =       ∑
+                          {𝑣,𝑢}∈𝐸△𝐸′ ∶
+                          𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+                                       (−1)1[{𝑣,𝑢}∈𝐸 ] sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 )) ⋅ 𝒓{𝑣,𝑢} ,
+                                                           ′
+                      =       ∑       (
+                                    ′
+                          {𝑣,𝑢}∈𝐸△𝐸 ∶
+                          𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+186   where 1[⋅] is the indicator function. For convenience, we shall denote this symmetric difference set as
+                                         {                                         }
+                                    Δ ≔ {𝑣, 𝑢} ∣ {𝑣, 𝑢} ∈ 𝐸 △ 𝐸′ , 𝑣 ∈ 𝐶, 𝑢 ∉ 𝐶 ∪ 𝐹 .
+                                                                                                         |Δ|
+187   Now, we can rewrite the event of a collision, meaning ∑𝑣∈𝐶 𝑓̃𝐹 (𝑣) − 𝑓 = 𝟎, as 𝑀𝒓Δ = 𝟎 where 𝒓△ ∈ 𝔽𝑄 is
+                                                                             (𝑐+𝑘−|𝐹 |+1)×|Δ|
+188   the subvector of 𝒓 for edges {𝑣, 𝑢} ∈ Δ. In turn, 𝑀 ∈ 𝔽𝑄                                  is the matrix with
+
+                                         𝑀𝑡,{𝑣,𝑢} = (−1)1[{𝑣,𝑢}∈𝐸 ] sgn(𝑣 − 𝑢)(𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ).
+                                                                  ′
+
+
+
+
+      Since for each edge {𝑣, 𝑢}, (−1)1[{𝑣,𝑢}∈𝐸 ] sgn(𝑣 − 𝑢)𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ) is the same across all 𝑡, 𝑀 can be seen as
+                                                ′
+189
+
+190   a columnwise scaling of the Vandermonde matrix with entries (𝑎𝑣 𝑎𝑢 )𝑡 . Recall that he prime product 𝑎𝑣 𝑎𝑢
+191   is distinct for each edge {𝑢, 𝑣}, so the unscaled matrix will have the Vandermonde properties, namely that
+192   any square submatrix where rows 1, … , 𝑖 are retained for some 𝑖 will be invertible. Further, as each edge
+193   has that 𝑣, 𝑢 ∉ 𝐹 , all columns are scaled by a nonzero value. Thus, 𝑀 retains the Vandermonde properties.
+194   We now case on the size of Δ.
+195       If |Δ| ≤ 𝑐 + 𝑘 − |𝐹 | + 1, then consider submatrix of 𝑀 with the first |Δ| rows, which will be invertible. If
+196   we call this submatrix 𝑀Δ , since each element of 𝒓Δ is drawn from 𝔽𝑄 ⧵ {0} we can draw
+
+                                                  𝒓Δ ≠ 𝟎 ⟹ 𝑀Δ 𝒓Δ ≠ 𝟎 ⟹ 𝑀𝒓Δ ≠ 𝟎.
+
+197   Thus, the collision probability is 0.
+198       If |Δ| > 𝑐 + 𝑘 − |𝐹 | + 1, consider some 𝑐 + 𝑘 − |𝐹 | + 1 sized subset of Δ. Calling this subset Γ, we can
+199   break up the collision event as
+
+                                                   𝑀𝒓Δ = 𝟎 ⟺ 𝑀Γ 𝒓Γ + 𝑀Δ⧵Γ 𝒓Δ⧵Γ = 𝟎
+
+                                                                         6
+                                                          ⟺ 𝒓Γ = −𝑀Γ−1 𝑀Δ⧵Γ 𝒓Δ⧵Γ .
+
+200   where 𝑀Γ is the submatrix of 𝑀 with columns corresponding to Γ and 𝒓Γ is the subvector of 𝑀 with
+201   elements corresponding to Γ. 𝑀Δ⧵Γ and 𝒓Δ⧵Γ are defined similarly. The second biimplication comes from
+202   the observation that 𝑀Γ is invertible.
+203       Now, if we condition on any fixing of 𝒓Δ⧵Γ , the right hand side will be a fixed vector of field elements.
+204   The probability that 𝒓Γ equals this fixed vector, since each element of 𝒓Γ is drawn uniformly, and indepen-
+205   dent of each other and of 𝒓Δ⧵Γ , is
+
+                                      1    |Γ|      1    𝑐+𝑘−|𝐹 |+1      1    𝑐+1
+                                               =                    ≤             ≤ 𝑛−𝑐 .
+                                   (𝑄 − 1)       (𝑄 − 1)              (𝑄 − 1)
+
+206   So, in either case, the collision probability is upper bounded by 𝑛−𝑐 , as desired.
+
+
+207   5       Upper Bounds
+208   Now that we have set up our new sketching primitives, we demonstrate its use in solving 𝑘-vertex con-
+209   nectivity problem in dynamic streams and both the public and private randomness distributed sketching
+210   models, achieving the following results respectively3 .
+
+211   Theorem 2. There exists: (i) a distributed sketching protocol with public randomness and 𝑂(𝑘 log3 𝑛) bits
+212   of communication per node, and (ii) a one-pass turnstile streaming algorithm with 𝑂(𝑘𝑛 log3 𝑛) bits of space
+213   complexity that solve the 𝑘-vertex connectivity problem with high probability.
+                                                                                               √
+214   Theorem 3. There exists a distributed sketching protocol with private randomness and 𝑂( 𝑘𝑛 log3/2 𝑛) bits
+215   of communication per node, that solves the 𝑘-vertex connectivity problem with high probability.
+
+216   5.1     Public Randomness
+217   We first describe our protocol for Theorem 2 in the distributed sketching setting, where each node com-
+218   putes a linear sketch of their neighborhood and sends it to the coordinator. The coordinator then generates
+219   an output from these sketches and the shared randomness.
+220          Our protocol is as such. Each node 𝑣 ∈ 𝑉 , using public randomness, computes the independent set
+221   of random graphs {𝐺𝑟,𝑙 } for 𝑟 ∈ [𝑅] with a suitably large 𝑅 = Θ(log 𝑛) and 𝑙 ∈ {0, … , ⌈2 log 𝑛⌉}, where
+222   𝐺𝑟,𝑙 = (𝑉 , 𝐸𝑟,𝑙 ) and 𝐸𝑟,𝑙 contains each edge in 𝐸 with probability 2−𝑙 . For its neighborhood in each graph
+223   𝐺𝑟,𝑙 independently, each node computes a 𝑘-sparse recovery sketch 𝑠𝑟,𝑙 (𝑣) and a fingerprint sketch 𝑓𝑟,𝑙 (𝑣)
+224   with 𝑛−(𝑘+5) collision probability of its row in the signed adjacency matrix. By Theorem 1, these can be
+225   done using 𝑂(𝑘 log 𝑛) bits each. It then sends all sketches to the coordinator.
+226          In part, the coordinator, for each set 𝐹 ⊆ 𝑉 with |𝐹 | ≤ 𝑘, builds a spanning forest of 𝐺[𝑉 ⧵ 𝐹 ]. If
+227   any of these spanning forests are not connected, they output that 𝐺 is not 𝑘-vertex-connected. If all are
+228   connected, they output that 𝐺 is 𝑘-vertex connected. Consequently, the union of all spanning forests
+229   will give a certificate of 𝑘-vertex-connectivity. In contrast to the previous protocols of [GMT15; AS23],
+230   computing this does not require any subsampling. Instead, for the set of sketches sent by all nodes, the
+231   coordinator transforms them in the ways outlined in the previous section in eqs. (2) and (3), getting sketches
+232   𝑠̃𝐹 ,𝑟,𝑙 (𝑣) and 𝑓̃𝐹 ,𝑟,𝑙 (𝑣) from all nodes 𝑣 ∈ 𝑉 .
+233          Now, in order to build a spanning forest of 𝐺[𝑉 ⧵ 𝐹 ], the coordinator emulates a Borůvka process in 𝑅
+234   rounds. For each round 𝑟 ∈ [𝑅], it posseses 𝑘-sparse recovery and fingerprint sketches for each blob 𝐶 at
+          Throughout this section we shall assume that 𝑘 = 𝑜(𝑛/ log3 𝑛). Whenever 𝑘 = Ω(𝑛/ log3 𝑛), each vertex can simply store or
+          3
+
+      send their entire neighborhood.
+
+
+                                                                   7
+235   each level of edge subsampling 𝑙, which together form an 𝓁0 sampler sketch of the blob’s boundary edges
+236   with failure probability 𝑒 −Ω(𝑘) and hallucination probability 𝑛−Ω(𝑘) . Thus, over 𝑅 rounds, the probability
+237   of hallucination or that the Borůvka process fails to complete is at most 𝑛−Ω(𝑘) . We show this below as
+238   Lemma 5.1. Union bounding over the at most 𝑛𝑘+1 sets 𝐹 of size up to 𝑘, we get that with high probabil-
+239   ity no edges are hallucinated and that every Borůvka process completes, which means that our protocol
+240   successfully constructs a spanning forest of every 𝐺[𝑉 ⧵ 𝐹 ]. Specifically, with the above parameters the
+241   failure probability is 𝑛−2 . This can be boosted to 𝑛−𝑐 for any arbitrary constant 𝑐 by increasing the sketch
+242   sizes be 𝑂((𝑐 + 𝑘) log 𝑛), with no asymptotic effect. Efe: Would it be better to present big O exponents here
+243   for high probability and do the exact math in the lemma, matching private randomness?                         !!!
+                                                                                                2
+244       The communication complexity of the protocol is from each node sending 𝑂(log 𝑛) sketches of size
+245   𝑂(𝑘 log 𝑛) bits each, which gives a total communication of 𝑂(𝑘 log3 𝑛) bits per node. This achieves the
+246   result of Theorem 2.
+
+247   Lemma 5.1. For a given set 𝐹 , round 𝑟 ∈ [𝑅] in the above Borůvka process, and blob 𝐶, the sketches
+248   ∑𝑣∈𝐶 𝑠̃𝐹 ,𝑟,𝑙 (𝑣) and ∑𝑣∈𝐶 𝑓̃𝐹 ,𝑟,𝑙 (𝑣) form an 𝓁0 sampler sketch of 𝐶’s boundary edges with failure probability
+249   2𝑒 −𝑘/12 and hallucination probability 𝑛−(𝑘+5) . Consequently, the probability that the Borůvka process fails to
+250   complete or produces a hallucinated edge over all 𝑅 rounds is at most 𝑛−(𝑘+3) .
+
+251   Proof. Consider some 𝐹 , 𝑟, and 𝐶. Recall that the 𝓁0 procedure goes through all subsampling levels 𝑙 from
+252   ⌈2 log 𝑛⌉ to 0, trying to recover the underlying boundary vector—call it 𝒃—using ∑𝑣∈𝐶 𝑠̃𝐹 ,𝑟,𝑙 (𝑣). It then
+253   verifies that this was indeed a correctly recovered vector and not a non-sparse vector that “appeared”
+254   sparse by computing its fingerprint—call it 𝑓 𝐹 ,𝑟,𝑙 (𝒃)—directly as
+
+                               𝑓 𝐹 ,𝑟,𝑙 (𝒃)𝑡 =        ∑            sgn(𝑣 − 𝑢)𝒓{𝑣,𝑢} (𝑎𝑣 𝑎𝑢 )𝑡 𝑃𝐹 (𝑎𝑣 )𝑃𝐹 (𝑎𝑢 ),
+                                                 {𝑣,𝑢}∶𝒃{𝑣,𝑢} ≠0
+                                                  𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+
+255       and checking if ∑𝑣∈𝐶 𝑓̃𝐹 ,𝑟,𝑙 (𝑣) = 𝑓 𝐹 ,𝑟,𝑙 (𝒃).
+256       First, we bound the probability that the underlying boundary vector is not 𝑘-sparse at any level. If 𝒃
+257   is 𝑘-sparse itself, it shall obviously be 𝑘-sparse at all levels. Otherwise, denoting 𝑑 ≔ Sup(𝒃), take the
+258   level 𝑙 such that 𝑘/4𝑑 ≤ 2−𝑙 < 𝑘/2𝑑. Call the subsampled underlying vector at this level 𝒃𝑙 . Note that
+259   𝔼[𝑑𝑙 ≔ Sup(𝒃𝑙 )] = 𝑑2−𝑙 . We have that
+
+                                       𝐏𝐫[0 < 𝑑𝑙 ≤ 𝑘] = 1 − 𝐏𝐫[𝑑𝑙 = 0] − 𝐏𝐫[𝑑𝑙 > 𝑘].
+
+260   Individually,
+                                                                                  −𝑙        𝑘
+                                     𝐏𝐫[𝑑𝑙 = 0] = (1 − 2−𝑙 )𝑑 ≤ 𝑒 −𝑑2 ≤ 𝑒 −𝑑 4𝑑 = 𝑒 −𝑘/4 ,
+261   and
+                                                                                                    −𝑙
+                          𝐏𝐫[𝑑𝑙 > 𝑘] ≤ 𝐏𝐫[𝑑𝑙 > 2𝑑2−𝑙 ] = 𝐏𝐫[𝑑𝑙 > 2 𝔼[𝑑𝑙 ]] ≤ 𝑒 −𝑑2 /3 ≤ 𝑒 −𝑘/12 .
+262   Plugging these back in, we get
+
+                                    𝐏𝐫[0 < 𝑑𝑙 ≤ 𝑘] ≥ 1 − 𝑒 −𝑘/4 − 𝑒 −𝑘/12 ≥ 1 − 2𝑒 −𝑘/12 .
+
+263   So, the probability that 𝒃 is not 𝑘-sparse at any level is at most 2𝑒 −𝑘/12 .
+264       For the second part of the lemma, a hallucination can happen when a nonempty non-𝑘-sparse un-
+265   derlying vector 𝒃𝑙 ’s sparse recovery sketch collides with some actually 𝑘-sparse boundary edge vector.
+266   The probability that these two vectors also collide on the fingerprint sketch, leading to a hallucination, is
+267   𝑛−(𝑘+5) . We can union bound over all 𝑅 = Θ(log 𝑛) rounds and over the at most 𝑛 blobs per round to get a
+268   hallucination probability over the whole process of at most 𝑛−(𝑘+3) .
+
+                                                                          8
+269       Now, assume that no hallucinations happen throughout the entire Borůvka process. Then, at each
+270   round a blob fails to grow with probability at most 2𝑒 −𝑘/12 , since otherwise the 𝑘-sparse recovery sketch
+271   can pull out a boundary edge.
+272       TODO: It remains to show that with probability 1 − 𝑛−(𝑘+3) a spanning forest is found in 𝑂(log 𝑛)
+273   rounds. What’s the neatest rigorous way of doing this?                                                      !!!
+
+274   5.2   Private Randomness
+275   We now explore the private randomness distributed sketching model. Here, we produce a result that might
+276   seem to be at first counterintuitive. Particularly, as our result in the public randomness model carries
+277   exactly a 𝑘-factor blowup over the regular connectivity protocol of [AGM12] and in conjunction with the
+278   existance of Ω(𝑘𝑛) lower bounds Efe: citation and maybe tighter lower bounds?, a reasonable assumption !!!
+279   is that 𝑘-vertex connectivity in the private randomness setting would also require a 𝑘-factor blowup over
+280   the current best regular connectivity protocol of [HKTZZ19]. This would therefore result in an 𝑂(𝑘        ̃ √𝑛)
+281   bit-per-vertex protocol.
+282
+        √ We prove this assumption wrong and achieve the result of Theorem 3 by providing a protocol with only
+283   a 𝑘 blowup in communication cost over regular connectivity. The protocol is as such. First,       {√for succinct-}
+284   ness define 𝑁 ≔ 4𝑘𝑛 log 𝑛. Each node 𝑣 ∈√𝑉 , using their private randomness, selects min 𝑁 , deg(𝑣)
+285   random neighbors. It also computes an 𝑂( 𝑁 )-sparse recovery √        sketch 𝑠(𝑣) of its row in the signed adja-
+286   cency matrix, which by Theorem 1 can be done using 𝑂( 𝑁 log 𝑛) bits. It then sends all random neighbors
+287   and 𝑠(𝑣) to the coordinator.
+288        The coordinator—using the random neighbors sent by all nodes—constructs the graph 𝐻 where 𝐻 =
+289   (𝑉 , 𝐸∪ ) and 𝐸∪ is the union of all edges arising from the random neighbors. Then, for each set 𝐹 ⊆ 𝑉 with
+290   |𝐹 | ≤ 𝑘, they compute the sketch 𝑠̃𝐹 (𝑣) from each node’s sent√sketch 𝑠(𝑣). Now, for each component 𝐶 of
+291   𝐻 [𝑉 ⧵ 𝐹 ], they take the sum ∑𝑣∈𝐶 𝑠̃𝐹 (𝑣) in order to get an 𝑂( 𝑁 )-sparse recovery sketch of the boundary
+292   edge vector of 𝐶 within 𝐻 [𝑉 ⧵ 𝐹 ]. Applying the result of [HKTZZ19]     √ shows that with probability at least
+293   1−𝑛−Ω(𝑘) , these underlying boundary edge vector s will indeed be 𝑂( 𝑁 )-sparse, allowing the coordinator
+294   to decode it for each component and construct a spanning forest of 𝐺[𝑉 ⧵ 𝐹 ]. We show this in detail below
+295   as Lemma 5.2. Finally, union bounding over all sets 𝐹 of size up to 𝑘 gives that with high probability our
+296   protocol computes a spanning forest of every 𝐺[𝑉 ⧵ 𝐹 ]. The coordinator can finally look at at these and
+297   output that the graph is 𝑘-vertex-connected if all of them are connected or that the graph is not 𝑘-vertex-
+298   connected if any are disconnected. Alternatively, taking the union of all spanning forests gives a certificate
+299   of 𝑘-vertex-connectivity.                                                                                     √
+300        For the communication complexity√     of the protocol, each node sends a message containing√ at most 𝑁
+301   random neighbors, which takes 𝑁 log 𝑛 bits to √       transcribe, as well
+                                                                             √ as the     sketch of 𝑂( 𝑁 log 𝑛/) bits.
+                                                                                      3/2
+302   This puts the total communication per node at 𝑂( 𝑁 log 𝑛) = 𝑂( 𝑘𝑛 log 𝑛) bits.
+                                                                                                                  √
+303   Lemma 5.2. For a given set 𝐹 and component 𝐶 of 𝐻 [𝑉 ⧵𝐹 ], with probability at least 1−𝑛−𝑘+3 𝐶 has 𝑂( 𝑁 )
+304   boundary edges.
+                                                                                                       {√              }
+305   Proof. Consider some 𝐹 and 𝐶, fixing 𝐺[𝑉 ⧵ 𝐹 ]. Every node in{this     √   graph    has sent min
+                                                                                                    }     𝑁 , deg𝐺 (𝑣)
+306   of their random neighbors in 𝐺 to the coordinator. At least min 𝑁 − 𝑘, deg𝐺[𝑉 ⧵𝐹 ] (𝑣) of these must be
+                                         √
+307   in 𝐺[𝑉 ⧵ 𝐹 ]. This is because if 𝑁 ≥ deg𝐺 (𝑣), 𝑣 sends all of its neighbors, of which deg𝐺[𝑉 ⧵𝐹 ] (𝑣) are in
+                                    √                          √
+308   𝐺[𝑉√⧵ 𝐹 ]. Alternatively, if 𝑁 < deg𝐺 (𝑣), out of the 𝑁 neighbors it sent, at most 𝑘 of them can be in 𝐹 .
+309   So, 𝑁 − 𝑘 of them must be in 𝐺[𝑉 ⧵ 𝐹 ].                    √           √
+310        Now, { using
+                   √    the fact that 𝑁 =
+                                        }  4𝑘𝑛 log 𝑛 and  𝑘 ≤ 𝑛,   𝑁 −  𝑘 ≥    𝑁 /2. Therefore, each node has sent at
+311   least min 𝑁 /2, deg𝐺[𝑉 ⧵𝐹 ] (𝑣) random neighbors in 𝐺[𝑉 ⧵ 𝐹 ].
+312        TODO: finish                                                                                                  !!!
+313
+
+
+
+
+                                                              9
+314       The tail bound result in Corollary 2.22 of [HKTZZ19] shows that with probability 1 − 2−Ω(𝑘 log 𝑛) , there
+315   will be at most 𝑂(𝑁 /𝜎) edges of 𝐺[𝑉 ⧵ 𝐹 ] that connect two different components of 𝐻 [𝑉 ⧵ 𝐹 ].
+
+316   5.3   Turnstile Streams
+317   Our public randomness algorithm above can also be implemented in the turnstile streaming model. Here,
+318   instead of each node computing a sketch from their neighborhood, the algorithm maintains each node’s
+319   sketch dynamically and in parallel. As our sketches are linear, this can be done simply and efficiently on
+320   edge updates. At the end of the stream, the algorithm post-processes all sketches in the same way as the
+321   coordinator’s part of the distributed protocol. Since each node’s sketch is maintained simultaneously, the
+322   total storage required to emulate the distributed protocol is then 𝑂(𝑘𝑛 log3 𝑛) bits. Any sketches computed
+323   in post-processing also fit into this space.
+324       There is one additional consideration in the turnstile streaming model, which is that any randomness
+325   used int the sketching matrix—specifically for the fingerprint sketch—now needs to be stored as well. This
+326   has potential to present a problem, since each node computes and stores the random vector 𝒓 of size (𝑛2).
+327   In the streaming model, this would require 𝑂(𝑛2 log 𝑛) bits to store, which is too large.
+328       There are two ways to overcome this. The first is to use Nisan’s psudorandom TODO: finish this part. !!!
+329   There is—however—a second way, which highlights the generality of the annihilator sketch. The sketching
+330   matrix Φ, which is the matrix product of a Vandermonde matrix and a random diagonal matrix, can be
+331   replaced by a single fully random matrix of the same dimension. This fully random matrix then only takes
+332   𝑂(𝑘𝑛 log 𝑛) bits to store, which is within our budget. We now explain this second way of constructing the
+333   fingerprint sketch 𝑓 (𝑣) which takes 𝑂((𝑐 + 𝑘) log 𝑛) bits of storage and has collision probability 𝑛−𝑐 for
+334   any post-processed sketch 𝑓̃𝐹 (𝑣).
+
+335   An Alternate Fingerprint Sketch Construction. Each node maintains the sketch 𝑓 (𝑣) = Φ𝒂𝑣± for
+336   a sketching matrix Φ ∈ 𝔽(𝑐+𝑘+1)×𝑛
+                                𝑄       , where each entry Φ𝑡,𝑣 is an independently and randomly drawn field
+337   element of 𝔽𝑄 ⧵ {0}. This sketch maintains
+
+                                              𝑓 (𝑣)𝑡 = ∑ sgn(𝑣 − 𝑢)Φ𝑡,𝑢
+                                                           𝑢∈N(𝑣)
+
+338   for      coordinate 𝑡 ∈ }{0, … , 𝑐 + 𝑘}. We can then, given a subset 𝐹 ⧵ 𝑉 with |𝐹 | ≤ 𝑘, take the kernel
+      { each𝑐+𝑘+1
+339     𝒑 ∈ 𝔽𝑄     ∣ 𝒑T Φ𝐹 = 𝟎 where Φ𝐹 is the submatrix of Φ containing only the columns of 𝐹 . This set has
+340   dimension at least 𝑐 +𝑘 +1−|𝐹 | ≥ 𝑐 +1, so we can take 𝑐 +1 linearly independent vectors 𝒑0 , … , 𝒑𝑐 ∈ 𝔽𝑐+𝑘+1
+                                                                                                              𝑄
+341   inside the kernel. For each 𝒑𝑡 , we define 𝑧𝑡 (𝑣) ≔ 𝒑T𝑡 Φ𝑣 where Φ𝑣 is the 𝑣th column of Φ. This generalizes
+342   the polynomial 𝑃𝐹 in the Vandermonde construction, and again has that 𝑧𝑗 (𝑣) = 0 if 𝑣 ∈ 𝐹 . We now have
+343   the ingredients to construct the sketch 𝑓̃𝐹 (𝑣), which is constructed as
+
+                                                      𝑓̃𝐹 (𝑣)𝑡 = 𝑧𝑗 (𝑣)𝒑T𝑡 𝑓 (𝑣)                                (3)
+
+344   for each coordinate 𝑡 ∈ {0, … , 𝑐}. Importantly, 𝑓̃(𝑣) can be constructed using only the kernel vectors
+345   𝒑1 , … , 𝒑𝑐+1 , 𝑓 (𝑣), and Φ which is based on shared randomness independent of the graph. We can then
+346   make a similar observation to Lemma 4.1.
+
+347   Lemma 5.3. For any node 𝑣 ∉ 𝐹 and each coordinate 𝑡 ∈ {0, … , 𝑐},
+
+                                         𝑓̃𝐹 (𝑣)𝑡 =      ∑        sgn(𝑣 − 𝑢)𝑧𝑡 (𝑣)𝑧𝑡 (𝑢).
+                                                      𝑢∈𝑁 (𝑣)⧵𝐹
+
+
+
+
+                                                                   10
+348   Proof. We expand the definition from eq. (3) as
+                                                                   𝑐+𝑘
+                                     𝑧𝑡 (𝑣)𝒑T𝑡 𝑓 (𝑣) = 𝑧𝑡 (𝑣) ∑(𝒑𝑡 )𝑖 𝑓 (𝑣)𝑖
+                                                                   𝑖=0
+                                                                   𝑐+𝑘
+                                                         = 𝑧𝑡 (𝑣) ∑(𝒑𝑡 )𝑖 ∑ sgn(𝑣 − 𝑢)Φ𝑖,𝑢
+                                                                      𝑖=0        𝑢∈N(𝑣)
+                                                                                            𝑐+𝑘
+                                                         = ∑ sgn(𝑣 − 𝑢)𝑧𝑡 (𝑣) ∑(𝒑𝑡 )𝑖 Φ𝑖,𝑢
+                                                             𝑢∈N(𝑣)                          𝑖=0
+
+                                                         = ∑ sgn(𝑣 − 𝑢)𝑧𝑡 (𝑣)𝑧𝑡 (𝑢)
+                                                             𝑢∈N(𝑣)
+
+                                                         =     ∑        sgn(𝑣 − 𝑢)𝑧𝑡 (𝑣)𝑧𝑡 (𝑢),
+                                                             𝑢∈N(𝑣)⧵𝐹
+
+349   where the last equality is because 𝑧𝑡 (𝑢) = 0 when 𝑢 ∈ 𝐹 .
+
+350       As with out other sketches, applying the same logic as in Lemma 4.2 cancels out the interior edges for
+351   the summed sketch of a component, giving that for any set of vertices 𝐶 ⊆ 𝑉 ⧵ 𝐹 and each coordinate
+352   𝑡 ∈ {0, … , 𝑐},
+                                      ∑ 𝑓̃𝐹 (𝑣)𝑡 = ∑ sgn(𝑣 − 𝑢)𝑧𝑡 (𝑣)𝑧𝑡 (𝑢).
+                                          𝑣∈𝐶                 {𝑣,𝑢}∈𝐸∶
+                                                             𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+353   It remains to show that for a fixed 𝐹 of size |𝐹 | ≤ 𝑘, the collision probability of ∑𝑣∈𝐶 𝑓̃𝐹 (𝑣), which is the
+354   sketch of the actual underlying boundary edge vector of 𝐶, and the sketch of a disting purported underlying
+355   boundary edge vector of 𝐶 is 𝑛−𝑐 . As before, call the actual boundary edge vector 𝒃 and the purported
+356   boundary edge vector 𝒃 ′ which is under an edge set 𝐸′ , such that 𝒃 ≠ 𝒃 ′ . Call the sketch of 𝒃 ′ 𝑓 .
+
+357   Proof of collision probability. We shall condition on Φ𝐹 , meaning we fix the submatrix of Φ containing only
+358   the columns of 𝐹 . This fixes 𝒑0 , … , 𝒑𝑐 . Now, 𝒃 ≠ 𝒃 ′ implies, as explained above, that
+                       {                                     } {                                       }
+                        {𝑣, 𝑢} ∣ {𝑣, 𝑢} ∈ 𝐸, 𝑣 ∈ 𝐶, 𝑢 ∉ 𝐶 ∪ 𝐹 ≠ {𝑣, 𝑢} ∣ {𝑣, 𝑢} ∈ 𝐸′ , 𝑣 ∈ 𝐶, 𝑢 ∉ 𝐶 ∪ 𝐹 .
+
+359   Therefore,
+
+                    ∑ 𝑓̃𝐹 (𝑣)𝑡 − 𝑓 𝑡 =      ∑           sgn(𝑣 − 𝑢)𝑧𝑡 (𝑣)𝑧𝑡 (𝑢) −             ∑           sgn(𝑣 − 𝑢)𝑧𝑡 (𝑣)𝑧𝑡 (𝑢)   (4)
+                    𝑣∈𝐶                  {𝑣,𝑢}∈𝐸⧵𝐸′ ∶                                     {𝑣,𝑢}∈𝐸′ ⧵𝐸∶
+                                         𝑣∈𝐶,𝑢∉𝐶∪𝐹                                        𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+                                    =       ∑           (−1)1[ {𝑣,𝑢}∈𝐸′     ] sgn(𝑣 − 𝑢)𝑧𝑡 (𝑣)𝑧𝑡 (𝑢),                             (5)
+                                         {𝑣,𝑢}∈𝐸△𝐸′ ∶
+                                         𝑣∈𝐶,𝑢∉𝐶∪𝐹
+
+360   which is a polynomial of degree two in the variables 𝑧𝑡 (𝑣) for 𝑣 ∈ 𝑉 ⧵𝐹 with nonzero coefficients. Recall that
+361   𝑧𝑡 (𝑣) = 𝒑T𝑡 Φ𝑣 where Φ𝑣 is the 𝑣th column of Φ. Since 𝒑𝑡 is fixed—importantly with 𝒑𝑡 ≠ 𝟎—and Φ𝑣 for each
+362   𝑣 ∈ 𝑉 ⧵ 𝐹 is a uniformly and independently random vector, each 𝑧𝑡 (𝑣) is also uniformly and independently
+363   random. Therefore, by the Schwartz-Zippel lemma Efe: citation, 𝐏𝐫[∑𝑣∈𝐶 𝑓̃𝐹 (𝑣)𝑡 − 𝑓 𝑡 = 0] ≤ 2/(𝑄 − 1) ≤ !!!
+364   𝑂(𝑛−3 ). Furthermore, since each 𝒑𝑡 is linearly independent, 𝐏𝐫[∑𝑣∈𝐶 𝑓̃𝐹 (𝑣) − 𝑓 = 𝟎] ≤ 𝑂(𝑛−3(𝑐+1) ) ≤ 𝑛−𝑐 .
+365   As this probability holds for any fixing of Φ𝐹 , it holds unconditionally, as desired.
+
+
+
+
+                                                                            11
+366   6     Lower Bounds
+367   There is one player for each vertex of an undirected graph on 𝑛 labeled vertices. Each player knows its
+368   own incident edges, and the players simultaneously send deterministic messages to a referee. The referee
+369   must distinguish disconnected graphs from 𝑘-vertex-connected graphs, with no requirement on graphs
+370   satisfying neither condition. Here 𝑘-vertex-connected means that the graph has more than 𝑘 vertices and
+371   remains connected after the deletion of any set of fewer than 𝑘 vertices.
+
+372   Theorem 4. For every 𝑛 ≥ 2 and 1 ≤ 𝑘 ≤ 𝑛 − 1, every deterministic simultaneous-message protocol for this
+373   promise problem has worst-case maximum message length
+
+                                               𝑛             {√ 𝑛 }
+                                         𝐵=Ω √       = Ω(min   𝑛,     .
+                                            ( 𝑛 + 𝑘)              𝑘 )
+
+374   The bound holds for arbitrary encoders, without any linearity assumption.
+
+375       Fix a protocol in which each message belongs to an alphabet of size at most 2𝐵 . We may assume 𝐵 ≥ 1,
+                                                                                       √
+376   since the complete graph and the empty graph require different outputs. If 𝐵 > 𝑛, the theorem already
+                                      √
+377   follows, so we also assume 𝐵 ≤ 𝑛. All message functions below are those of this fixed 𝑛-vertex protocol.
+
+378   6.1   A Hamming-distance pigeonhole lemma
+379   Write dist(𝑥, 𝑦) for Hamming distance between binary strings.
+
+380   Lemma 6.1. Let 𝑠 ≥ 0, 𝑘 ≥ 1, and 𝑚 ≥ 4(𝑠 + 𝑘) be integers. Every map from {0, 1}𝑚 to a set of size at most
+381   2𝑠 has two inputs 𝑥, 𝑦 with the same image and dist(𝑥, 𝑦) ≥ 𝑘.
+
+382   Proof. By the pigeonhole principle, at least 2𝑚−𝑠 inputs have the same output. Fix one such input 𝑥. The
+383   number of inputs at distance less than 𝑘 from 𝑥, counting 𝑥 itself, is
+                                  𝑘−1              𝑚
+                                        𝑚              𝑚 −𝑗
+                             𝑉 =∑           < 2𝑘 ∑         2 = 2𝑘 (3/2)𝑚 < 2𝑘+3𝑚/4 ≤ 2𝑚−𝑠 .
+                                  𝑗=0
+                                      ( 𝑗 )      𝑗=0
+                                                     ( 𝑗 )
+
+384   Here we used the binomial theorem, (3/2)4 < 23 , and 𝑚/4 ≥ 𝑠 + 𝑘. Thus one of the other inputs with the
+385   same output as 𝑥 has distance at least 𝑘 from 𝑥.
+
+386   6.2   The graph family
+387   The construction has two cliques and many centers. Each center 𝑐𝑖 attaches to a small set inside one clique,
+388   selected by a bit 𝑎𝑖 , and to a second small set selected by a bit 𝑏𝑖 . When 𝑎 = 𝑏, every center lies entirely on
+389   one side and the graph is disconnected; a center with 𝑎𝑖 ≠ 𝑏𝑖 bridges the two sides. We defeat the protocol
+390   by choosing the attachment sets so that each center’s message ignores 𝑏𝑖 , and then finding, by Lemma 6.1,
+391   two strings 𝑏 that are far apart in Hamming distance yet produce identical transcripts. For general 𝑘, the
+392   attachment sets must have size at least 𝑘, so that they survive the deletion of fewer than 𝑘 vertices, and
+393   the two strings must differ in at least 𝑘 places, so that at least one bridging center survives.
+394       Set
+                                                       √
+                                            𝑞 = 128(⌈ 𝑛⌉ + 𝑘),        𝑀 = 𝑛 − 𝑞.
+395   (The constant is chosen so that 4𝑘 ≤ 𝑞 and 16(𝐵 + 𝑘) ≤ 𝑞/8; both inequalities are used in Section 6.5.)
+396   Suppose, toward a contradiction, that
+                                                 𝑀 ≥ 4(𝑞𝐵 + 𝑘).                                           (6)
+
+                                                             12
+397   In particular, 𝑞 < 𝑛. Reserve 𝑀 vertices as centers 𝑐1 , … , 𝑐𝑀 and let 𝑈 be the set of the remaining 𝑞 vertices.
+398   We will partition 𝑈 into four groups 𝑃0 , 𝑃1 , 𝑅0 , 𝑅1 ; their sizes need not be equal. For each center 𝑐𝑖 , we will
+399   choose subsets
+                           𝑃𝑖0 ⊆ 𝑃0 ,    𝑃𝑖1 ⊆ 𝑃1 ,    𝑅𝑖0 ⊆ 𝑅0 ,     𝑅𝑖1 ⊆ 𝑅1 ,            |𝑃𝑖0 |, |𝑃𝑖1 |, |𝑅𝑖0 |, |𝑅𝑖1 | ≥ 𝑘.
+400   The partition and all these subsets depend on the protocol and are fixed before the binary strings are
+401   chosen. Different centers may use overlapping subsets of the same groups.
+402      For 𝑎, 𝑏 ∈ {0, 1}𝑀 , define 𝐺(𝑎, 𝑏) on these vertices as follows:
+403         - Make 𝑃0 ∪ 𝑅0 a clique and 𝑃1 ∪ 𝑅1 a clique.
+404         - Give each center 𝑐𝑖 exactly the neighborhood 𝑃𝑖𝑎𝑖 ∪ 𝑅𝑖𝑏𝑖 .
+405   There are no other edges. The two cliques together contain the 𝑞 vertices of 𝑈 , and the remaining 𝑀 = 𝑛−𝑞
+406   vertices are the centers.
+                                                               𝑃0 ∪ 𝑅0 : clique
+
+                                    𝑃0                𝑃𝑖0                             𝑅𝑖0                     𝑅0
+
+                                                      𝑎𝑖 = 0                       𝑏𝑖 = 0
+
+                 𝑐1                           ⋯                       𝑐𝑖                           ⋯                              𝑐𝑀
+
+                                                      𝑎𝑖 = 1                       𝑏𝑖 = 1
+
+
+                                    𝑃1                𝑃𝑖1                             𝑅𝑖1                     𝑅1
+                                                               𝑃1 ∪ 𝑅1 : clique
+
+      Figure 1: All centers share the same four groups; only the subsets for one center 𝑐𝑖 are shown. The dashed
+      connections indicate the four candidate neighbor sets of 𝑐𝑖 : in 𝐺(𝑎, 𝑏), 𝑐𝑖 is adjacent to every vertex of 𝑃𝑖𝑎𝑖
+      and of 𝑅𝑖𝑏𝑖 . Each of the four subsets has at least 𝑘 vertices. The other centers’ attachments are omitted.
+
+
+407   Lemma 6.2. If 𝑎 = 𝑏, then 𝐺(𝑎, 𝑏) has exactly two connected components. If dist(𝑎, 𝑏) ≥ 𝑘, then 𝐺(𝑎, 𝑏) is
+408   𝑘-vertex-connected.
+409   Proof. When 𝑎 = 𝑏, each center attaches entirely to one clique: the neighborhood of 𝑐𝑖 is 𝑃𝑖𝑎𝑖 ∪𝑅𝑖𝑎𝑖 ⊆ 𝑃𝑎𝑖 ∪𝑅𝑎𝑖 .
+410   Both cliques are nonempty, and no edge joins the two sides.
+411       Now suppose dist(𝑎, 𝑏) ≥ 𝑘, and delete an arbitrary vertex set 𝑋 with |𝑋 | < 𝑘. Each clique has at least
+412   2𝑘 vertices, since 𝑃𝑏 ∪ 𝑅𝑏 contains the disjoint sets 𝑃1𝑏 and 𝑅1𝑏 , each of size at least 𝑘; so each clique has
+413   a nonempty connected remainder. There are at least 𝑘 centers 𝑐𝑖 with 𝑎𝑖 ≠ 𝑏𝑖 , so at least one such center
+414   survives. It has at least 𝑘 neighbors in each clique, so it retains a neighbor in each remainder and joins
+415   the two remainders. Every other surviving center 𝑐𝑖 retains a neighbor in 𝑃𝑖𝑎𝑖 , since |𝑃𝑖𝑎𝑖 | ≥ 𝑘 > |𝑋 |. Thus
+416   𝐺(𝑎, 𝑏) − 𝑋 is connected. Since 𝐺(𝑎, 𝑏) has 𝑛 > 𝑘 vertices, it is 𝑘-vertex-connected.
+
+417   6.3     The two local collisions and the transcript argument
+418   For each center 𝑐𝑖 , let 𝑓𝑖 (𝑆) be its message when its neighborhood is 𝑆 ⊆ 𝑈 . We choose the partition and
+419   subsets so that
+                                                       𝑓𝑖 (𝑃𝑖0 ∪ 𝑅𝑖0 ) = 𝑓𝑖 (𝑃𝑖0 ∪ 𝑅𝑖1 ),                                              (7)
+
+                                                                      13
+                                                    𝑓𝑖 (𝑃𝑖1 ∪ 𝑅𝑖0 ) = 𝑓𝑖 (𝑃𝑖1 ∪ 𝑅𝑖1 ).                                (8)
+
+420   The common values in the two equations need not be equal. Assuming (7) and (8), the message of 𝑐𝑖 in
+421   𝐺(𝑎, 𝑏), namely 𝑓𝑖 (𝑃𝑖𝑎𝑖 ∪ 𝑅𝑖𝑏𝑖 ), depends on 𝑎𝑖 but not on 𝑏𝑖 . Sections 6.4 and 6.5 show that such a choice
+422   exists.
+423       The other players’ messages are easy to describe. A vertex in 𝑃0 ∪ 𝑃1 sees its clique together with the
+424   centers 𝑐𝑖 for which it lies in 𝑃𝑖𝑎𝑖 , so its message depends only on 𝑎. A vertex in 𝑅0 ∪ 𝑅1 sees its clique
+425   together with the centers 𝑐𝑖 for which it lies in 𝑅𝑖𝑏𝑖 , so its message depends only on 𝑏. There are at most
+426   𝑞 players in 𝑅0 ∪ 𝑅1 , so the map sending 𝑏 to their joint transcript has at most 2𝑞𝐵 values. By (6), we may
+427   apply Lemma 6.1 with
+                                               𝑠 = 𝑞𝐵,      𝑚 = 𝑀 ≥ 4(𝑠 + 𝑘).
+428   There are strings 𝑥, 𝑦 ∈ {0, 1}𝑀 with dist(𝑥, 𝑦) ≥ 𝑘 giving the same joint transcript on 𝑅0 ∪ 𝑅1 when 𝑏 = 𝑥
+429   and when 𝑏 = 𝑦.
+430       Fix 𝑎 = 𝑥 and compare 𝐺(𝑥, 𝑥) with 𝐺(𝑥, 𝑦). The messages from 𝑃0 ∪ 𝑃1 depend only on 𝑎, which is
+431   the same in both graphs. The messages from the centers also depend only on 𝑎, by (7) and (8). The joint
+432   transcript of 𝑅0 ∪ 𝑅1 agrees by the choice of 𝑥 and 𝑦. Thus the full transcripts agree, although 𝐺(𝑥, 𝑥)
+433   is disconnected and 𝐺(𝑥, 𝑦) is 𝑘-vertex-connected by Lemma 6.2. Both graphs satisfy the promise, so the
+434   protocol must fail on one of them.
+
+435   6.4   Finding large local collision witnesses
+436   It remains to choose the partition and the subsets so that the two collisions hold at every center simulta-
+437   neously, with all four witnessing sets of size at least 𝑘. Call a partition of 𝑈 into four groups 𝑃0 , 𝑃1 , 𝑅0 , 𝑅1
+438   (empty groups allowed) good for 𝑐𝑖 if there are subsets 𝑃𝑖0 ⊆ 𝑃0 , 𝑃𝑖1 ⊆ 𝑃1 , 𝑅𝑖0 ⊆ 𝑅0 , 𝑅𝑖1 ⊆ 𝑅1 , each of size
+439   at least 𝑘, satisfying (7) and (8); otherwise call it bad for 𝑐𝑖 . A partition that is good for 𝑐𝑖 has at least 𝑘
+440   vertices in each group. In this section we show that any 16(𝐵 + 𝑘) vertices of 𝑈 can be labeled so as to
+441   force goodness for one center; in the next we show that a random partition is good for all centers at once.
+
+442   Lemma 6.3. Set 𝑑 = 16(𝐵 + 𝑘). For every 𝑌𝑖 ⊆ 𝑈 of size 𝑑, there is a labeling of the vertices of 𝑌𝑖 by
+443   𝑃0 , 𝑃1 , 𝑅0 , 𝑅1 such that every partition of 𝑈 extending this labeling is good for 𝑐𝑖 .
+
+444   Proof. Since 𝑑 is even, we can pair up the elements of 𝑌𝑖 into 𝑑/2 pairs. Designate 𝑘 of the pairs, {𝛼𝑗 , 𝛽𝑗 }
+445   for 𝑗 = 1, … , 𝑘, and call the remaining
+
+                                             𝑚 = 𝑑/2 − 𝑘 = 8𝐵 + 7𝑘 ≥ 4(2𝐵 + 𝑘)
+
+446   pairs free. Consider the sets 𝐴 that contain exactly one element of every pair and contain 𝛼𝑗 rather than
+447   𝛽𝑗 from each designated pair. Such a set is determined by its choices on the free pairs, so these sets are
+448   indexed by {0, 1}𝑚 . For each such 𝐴, consider the ordered pair of messages
+
+                                                        (𝑓𝑖 (𝐴), 𝑓𝑖 (𝑌𝑖 ⧵ 𝐴)).
+
+449   There are at most 22𝐵 possible message pairs. Lemma 6.1 with 𝑠 = 2𝐵 therefore gives two sets 𝐴0𝑖 , 𝐴1𝑖 with
+450   the same message pair whose index strings differ in at least 𝑘 coordinates; that is, 𝐴0𝑖 and 𝐴1𝑖 make different
+451   choices on at least 𝑘 free pairs. Define
+
+                                𝑃𝑖0 = 𝐴0𝑖 ∩ 𝐴1𝑖 ,                                𝑃𝑖1 = 𝑌𝑖 ⧵ (𝐴0𝑖 ∪ 𝐴1𝑖 ),
+                                𝑅𝑖0 = 𝐴0𝑖 ⧵ 𝐴1𝑖 ,                                𝑅𝑖1 = 𝐴1𝑖 ⧵ 𝐴0𝑖 .
+
+
+
+                                                                   14
+                                𝐴0𝑖                                                                 𝐴1𝑖
+
+
+                                𝑅𝑖0 = 𝐴0𝑖 ⧵ 𝐴1𝑖            𝑃𝑖0 = 𝐴0𝑖 ∩ 𝐴1𝑖              𝑅𝑖1 = 𝐴1𝑖 ⧵ 𝐴0𝑖
+
+
+
+
+                         𝑌𝑖                             𝑃𝑖1 = 𝑌𝑖 ⧵ (𝐴0𝑖 ∪ 𝐴1𝑖 )
+
+
+      Figure 2: The two choices 𝐴0𝑖 , 𝐴1𝑖 determine four disjoint parts of 𝑌𝑖 . Each designated pair places 𝛼𝑗 in 𝑃𝑖0
+      and 𝛽𝑗 in 𝑃𝑖1 . Each free pair on which the choices differ places one vertex in 𝑅𝑖0 and the other in 𝑅𝑖1 .
+
+
+452   These four sets partition 𝑌𝑖 , as illustrated in Figure 2. Each designated pair puts 𝛼𝑗 in 𝑃𝑖0 and 𝛽𝑗 in 𝑃𝑖1 , so
+453   both 𝑃 sets have size at least 𝑘. Each free pair on which the two choices differ contributes one vertex to
+454   each 𝑅 set, so both 𝑅 sets also have size at least 𝑘.
+455      Since 𝐴0𝑖 = 𝑃𝑖0 ∪ 𝑅𝑖0 and 𝐴1𝑖 = 𝑃𝑖0 ∪ 𝑅𝑖1 , equality of the first messages gives
+
+                                                   𝑓𝑖 (𝑃𝑖0 ∪ 𝑅𝑖0 ) = 𝑓𝑖 (𝑃𝑖0 ∪ 𝑅𝑖1 ).
+
+456   Since 𝑌𝑖 ⧵ 𝐴0𝑖 = 𝑃𝑖1 ∪ 𝑅𝑖1 and 𝑌𝑖 ⧵ 𝐴1𝑖 = 𝑃𝑖1 ∪ 𝑅𝑖0 , equality of the second messages gives
+
+                                                   𝑓𝑖 (𝑃𝑖1 ∪ 𝑅𝑖1 ) = 𝑓𝑖 (𝑃𝑖1 ∪ 𝑅𝑖0 ).
+
+457   Now label the vertices of 𝑃𝑖0 by 𝑃0 , those of 𝑃𝑖1 by 𝑃1 , those of 𝑅𝑖0 by 𝑅0 , and those of 𝑅𝑖1 by 𝑅1 . Every
+458   partition of 𝑈 extending this labeling contains the four sets in the correct groups, so it is good for 𝑐𝑖 .
+
+459   6.5   Counting bad partitions and concluding the bound
+460   Assign each vertex of 𝑈 independently and uniformly one of the four labels 𝑃0 , 𝑃1 , 𝑅0 , 𝑅1 . We show that
+461   with positive probability the resulting partition is good for every center. The tool is the following gener-
+462   alization of the Sauer–Shelah lemma to a four-letter alphabet, due to Karpovsky and Milman [KM78].
+463   Lemma 6.4 (Karpovsky–Milman). Let 𝑆 ⊆ {1, 2, 3, 4}𝑞 . Suppose that for every set 𝐷 of 𝑑 coordinates there is
+464   a word in {1, 2, 3, 4}𝐷 that is not the restriction to 𝐷 of any element of 𝑆. Then
+                                                              𝑑−1
+                                                                   𝑞 𝑞−𝑗
+                                                        |𝑆| ≤ ∑        3 .
+                                                              𝑗=0
+                                                                  (𝑗 )
+
+465       View each assignment of labels to 𝑈 as a word of length 𝑞 over the alphabet {𝑃0 , 𝑃1 , 𝑅0 , 𝑅1 }, and let 𝑆
+466   be the set of words that are bad for 𝑐𝑖 . Lemma 6.3 says exactly that on every set 𝑌𝑖 of 𝑑 coordinates, some
+467   word is not the restriction of any element of 𝑆. Hence Lemma 6.4 bounds the number of partitions that are
+468   bad for 𝑐𝑖 by ∑𝑗<𝑑 (𝑞𝑗 )3𝑞−𝑗 . Dividing by the 4𝑞 equally likely label assignments,
+
+                                                  𝑑−1
+                                                       𝑞    1 𝑗 3 𝑞−𝑗
+                 Pr[partition is bad for 𝑐𝑖 ] ≤ ∑                     = Pr[𝑍 < 𝑑],                  𝑍 ∼ Bin(𝑞, 1/4).
+                                                  𝑗=0
+                                                          (
+                                                      (𝑗 ) 4 ) ( 4 )
+               √
+469   Since 𝐵 ≤ 𝑛, we have 𝑑 = 16(𝐵 + 𝑘) ≤ 𝑞/8, so 𝜇 = 𝔼[𝑍] = 𝑞/4 satisfies 𝑑 ≤ 𝜇/2. The Chernoff bound
+470   Pr[𝑍 ≤ 𝜇/2] ≤ 𝑒 −𝜇/8 gives Pr[𝑍 < 𝑑] ≤ 𝑒 −𝑞/32 . Taking a union bound over the 𝑀 ≤ 𝑛 centers,
+                                                                                                √
+                              Pr[partition is bad for some center] ≤ 𝑛𝑒 −𝑞/32 ≤ 𝑛𝑒 −4 𝑛 < 1.
+
+                                                                  15
+471   Thus some partition is good for every center. Fix it, and for each center fix the four witnessing subsets. The
+472   transcript argument of Section 6.3 then contradicts the correctness of the protocol. Every correct protocol
+473   must therefore violate (6), that is, 𝑀 < 4(𝑞𝐵 + 𝑘). Since 𝑀 = 𝑛 − 𝑞, 4𝑘 ≤ 𝑞, and 𝐵 ≥ 1, this gives
+
+                                               𝑛 < (4𝐵 + 1)𝑞 + 4𝑘 ≤ 6𝐵𝑞.
+
+474   Consequently,
+                                          𝑛       𝑛             {√ 𝑛 }
+                                     𝐵>      =Ω √       = Ω(min   𝑛,     .
+                                          6𝑞   ( 𝑛 + 𝑘)              𝑘 )
+                                     √
+475   Together with the case 𝐵 > 𝑛 handled at the start, this proves Theorem 4. If messages have variable
+476   length at most 𝐵, each player has fewer than 2𝐵+1 possible messages; applying the argument with 𝐵 + 1,
+477   together with 𝐵 ≥ 1, gives the same asymptotic bound.
+                                                                         √
+478       In particular, the square-root lower bound is preserved for 𝑘 ≤ 𝑛, while 𝑘 = 𝑛2/3 gives Ω(𝑛1/3 ).
+
+
+479   References
+480   [AGM12]       Kook Jin Ahn, Sudipto Guha, and Andrew McGregor. “Analyzing graph structure via linear
+481                 measurements”. In: Proc. 23rd Annual ACM-SIAM Symposium on Discrete Algorithms. 2012,
+482                 pp. 459–467.
+483   [AS23]        Sepehr Assadi and Vihan Shah. “Tight Bounds for Vertex Connectivity in Dynamic Streams”.
+484                 In: Proc. 6th SIAM Symposium on Simplicity in Algorithms. Ed. by Telikepalli Kavitha and Kurt
+485                 Mehlhorn. SIAM, 2023, pp. 213–227. doi: 10.1137/1.9781611977585.CH20. url:
+486                 https://doi.org/10.1137/1.9781611977585.CH20.
+487   [GMT15]       Sudipto Guha, Andrew McGregor, and David Tench. “Vertex and Hyperedge Connectivity in
+488                 Dynamic Graph Streams”. In: Proc. 34th ACM Symposium on Principles of Database Systems.
+489                 ACM, 2015, pp. 241–247.
+490   [HKTZZ19]     Jacob Holm, Valerie King, Mikkel Thorup, Or Zamir, and Uri Zwick. “Random k-out Sub-
+491                 graph Leaves only 𝑂(𝑛/𝑘) Inter-Component Edges”. In: Proc. 60th Annual IEEE Symposium
+492                 on Foundations of Computer Science. Ed. by David Zuckerman. IEEE Computer Society, 2019,
+493                 pp. 896–909. doi: 10.1109/FOCS.2019.00058. url: https://doi.org/10.
+494                 1109/FOCS.2019.00058.
+495   [KM78]        Mark Karpovsky and Vitali Milman. “Coordinate density of sets of vectors”. In: 24.2 (1978),
+496                 pp. 177–184.
+
+
+
+
+                                                           16
+

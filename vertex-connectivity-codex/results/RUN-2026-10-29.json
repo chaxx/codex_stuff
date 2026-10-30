@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-29",
+  "archive_file": "vertex-connectivity-codex-workspace.zip",
+  "archive_sha256": "af1f5e13a879a5609a0258f460d33df853d6f7cf9a29c5836d5a3a7978d353fe",
+  "workflow": "workflows/01-deterministic-connectivity.md",
+  "source_sha256": {
+    "sources/draft/paper-body.pdf": "9e675cac6ca298a20feb79a6b46a5aa11b21ddce363cba524793e89e0aae8e8d",
+    "sources/draft/paper-body.txt": "fef944d96b2bd34e7a2e5b10eea49296de2402c04c1f40c536486eebec4f8e7c",
+    "sources/prior-notes/deterministic_connectivity_lower_bounds.pdf": "7c048d14c386823be817587f92131edbb171112bae2db928d30ad9bfe746cc24",
+    "sources/prior-notes/deterministic_connectivity_lower_bounds.tex": "32ef1972f668ba8ed74845948b80bc8dd4dfe8009da613f708255de96bb7c814",
+    "sources/prior-notes/vertex_connectivity_research_note.pdf": "b9408f3b3f886ba05a80a63d0c7617775d932f7d183e373a9ec2db23b5fd7c95",
+    "sources/prior-notes/vertex_connectivity_research_note.tex": "75d722dccdbf564878b4f29225622558957ae5c6ff68990fdd3ed1128951cddd"
+  },
+  "execution": "Native collaboration tools using role definitions; no nested Codex CLI process.",
+  "source_sha256_after_user_requested_edit": {
+    "sources/draft/paper-body.pdf": "9e675cac6ca298a20feb79a6b46a5aa11b21ddce363cba524793e89e0aae8e8d",
+    "sources/draft/paper-body.txt": "fef944d96b2bd34e7a2e5b10eea49296de2402c04c1f40c536486eebec4f8e7c",
+    "sources/prior-notes/deterministic_connectivity_lower_bounds.pdf": "7c048d14c386823be817587f92131edbb171112bae2db928d30ad9bfe746cc24",
+    "sources/prior-notes/deterministic_connectivity_lower_bounds.tex": "32ef1972f668ba8ed74845948b80bc8dd4dfe8009da613f708255de96bb7c814",
+    "sources/prior-notes/vertex_connectivity_research_note.pdf": "b9408f3b3f886ba05a80a63d0c7617775d932f7d183e373a9ec2db23b5fd7c95",
+    "sources/prior-notes/vertex_connectivity_research_note.tex": "ba7df2213ec718c9635d2cdf8b20e162d38055a90fa8510378491e7afe962557"
+  },
+  "authorized_source_changes": [
+    "sources/prior-notes/vertex_connectivity_research_note.tex"
+  ],
+  "source_change_authorization": "User separately requested fixed-edge W/Psi dimension correction in this exact TeX file during the harness run.",
+  "completed_outputs": [
+    "results/CONSOLIDATED.md",
+    "manuscript/lower_bound_candidate.tex",
+    "manuscript/lower_bound_candidate.pdf",
+    "results/dimension-correction/vertex_connectivity_research_note.pdf"
+  ],
+  "independent_audit": "Replacement proof_auditor_fresh spawned with fork_turns=none; statements first, locked blind report, then proof release. Rank +0 refinement independently reverse-audited.",
+  "result": "No unrestricted improvement beyond Omega(sqrt(n)); audited baseline and refined bounded-rank obstruction."
+}

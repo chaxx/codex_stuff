@@ -1,0 +1,1 @@
+Run workflows/04-manuscript.md, using only independently checked results from context/claims.md. If author TeX is absent, write an addendum, not a substituted original.

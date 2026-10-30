@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "note": "Finite checks; not an independent-agent review.",
+  "constant_field_rank": {
+    "matrix_cases": 40896,
+    "rank_exact_cases": 40832,
+    "rank_deficient_cases": 64,
+    "transformation_identities": 175500
+  },
+  "cut_polynomial": {
+    "nonzero_cut_polynomials": 36,
+    "assignments_per_polynomial": 125,
+    "maximum_zero_assignments": 45
+  },
+  "near_complete": {
+    "one_bit_threshold_graphs": 1096
+  },
+  "essential_edges": {
+    "edge_indispensability_cases": 5324
+  },
+  "elapsed_seconds": 3.23
+}

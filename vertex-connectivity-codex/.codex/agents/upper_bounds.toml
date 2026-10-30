@@ -1,0 +1,5 @@
+name = "upper_bounds"
+description = "Analyze and strengthen randomized and deterministic protocols for vertex connectivity."
+developer_instructions = """
+Seek tighter bit and log factors, stronger failure guarantees, improved decoding time, post-deletion query support and sparse certificates. Explicitly separate decision, component recovery and strong certificate. Check correct failure-set range |F|<k. Handle adaptivity when union bounding, independent fresh randomness, and degree/sparsity edge cases. Put findings in assigned agent output directory.
+"""

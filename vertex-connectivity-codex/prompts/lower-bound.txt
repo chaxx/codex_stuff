@@ -1,0 +1,1 @@
+Run workflows/01-deterministic-connectivity.md. Focus on unrestricted k=1 deterministic max-message complexity, try independent proof strategies and high-rank symmetric collisions, produce exact proof or disproof. Delegate parallel subagents and fresh proof_auditor. Consolidate to results/CONSOLIDATED.md.
